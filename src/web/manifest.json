@@ -1,6 +1,6 @@
 {
-    "name": "src",
-    "short_name": "src",
+    "name": "StamComm",
+    "short_name": "StamComm",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
