@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1057468782193",
+    "project_id": "stamcomm-1f5d2",
+    "storage_bucket": "stamcomm-1f5d2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1057468782193:android:7e83234c33bcdb81446dd0",
+        "android_client_info": {
+          "package_name": "com.example.src"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_VvUTbmJa5qVi14QuAWAkw1FdopnU9Zc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
