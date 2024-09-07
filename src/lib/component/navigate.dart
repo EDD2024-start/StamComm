@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'home.dart';
+import '../view/home.dart';
+import '../view/map.dart';
+import '../view/search.dart';
+import '../view/setting.dart';
+
 
 class NavigateApp extends StatelessWidget {
   static const String _title = 'Flutter Code Sample';
@@ -20,7 +24,8 @@ class Navigate extends StatefulWidget {
 
 class _NavigateState extends State<Navigate> {
   int pageIndex = 0;
-  List<Widget> contents = const [Text("Home"), Text("マップ"), Text("検索"), Text("設定")];
+
+  final List<Widget> pages = [HomePage(), MapPage(), SearchPage(), SettingPage()];
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +33,9 @@ class _NavigateState extends State<Navigate> {
       appBar: AppBar(
         title: const Text("App"),
       ),
-      body: Center(
-        child: contents[pageIndex],
+      body: IndexedStack(
+        index: pageIndex,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
