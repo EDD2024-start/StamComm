@@ -39,6 +39,7 @@ dependencies:
   font_awesome_flutter: ^10.7.0
   email_validator: ^3.0.0
   platform_maps_flutter: ^1.0.2
+  geolocator: ^12.0.0
 
 dev_dependencies:
   flutter_test:

@@ -49,5 +49,13 @@
     <string>This app requires user's location for better user experience.</string>
 	<key>io.flutter.embedded_views_preview</key>
     <true/>
+
+	<!-- geolocator Section -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Required to post location information when posting photos and videos.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Required to post location information when posting photos and videos.</string>
+    <!-- End of the geolocator Section -->
+
 </dict>
 </plist>
