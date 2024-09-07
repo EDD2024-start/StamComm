@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import '../component/stamp_detail_panel_component.dart'; // slide_up_content.dartをインポート
 
 class DisplayMap extends StatelessWidget {
   const DisplayMap({Key? key}) : super(key: key);
@@ -11,11 +12,9 @@ class DisplayMap extends StatelessWidget {
         title: const Text('サンプル'),
       ),
       body: SlidingUpPanel(
-        panel: Center(
-          child: Text('スライドアップパネルの内容'),
-        ),
+        panel: const SlideUpContent(), // SlideUpContentコンポーネントを使用
         body: Center(
-          child: Text('サンプル'),
+          child: const Text('サンプル'),
         ),
       ),
     );
