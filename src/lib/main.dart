@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'firebase_options.dart';
 import 'reset_password_screen.dart';
 import 'validation.dart';
+import 'component/navigate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,7 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -204,6 +205,11 @@ class _LoginPageState extends State<LoginPage> {
                       setState(() {
                         infoText = "ログインに成功しました！";
                       });
+                      // NavigateAppに遷移
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => NavigateApp()),
+                      );
                     } catch (e) {
                       // ユーザー登録に失敗した場合
                       setState(() {
