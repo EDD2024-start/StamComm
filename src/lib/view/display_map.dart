@@ -17,8 +17,8 @@ class DisplayMap extends StatelessWidget {
           child: const Text('サンプル'),
         ),
          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
           ),
         minHeight: 100,
         maxHeight: 700,
