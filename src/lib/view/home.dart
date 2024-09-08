@@ -5,7 +5,11 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home Page'),
+        title: Image.asset(
+          'lib/images/kumamon.jpg', // 画像のパスを指定
+          height: 40, 
+        ),
+        centerTitle: true, // タイトルを中央に配置
       ),
       body: Center(
         child: Column(
