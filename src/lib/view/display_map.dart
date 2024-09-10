@@ -16,10 +16,8 @@ class _DisplayMapState extends State<DisplayMap> {
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
   }
 
-  // 現在地を取得するメソッド
   void _getCurrentLocation() async {
     try {
       Position position = await Geolocator.getCurrentPosition(
@@ -62,7 +60,6 @@ class _DisplayMapState extends State<DisplayMap> {
               zoomControlsEnabled: false,
               onMapCreated: (GoogleMapController controller) {
                 mapController = controller;
-                // 現在地にカメラを移動する
                 _getCurrentLocation();
               },
             ),
