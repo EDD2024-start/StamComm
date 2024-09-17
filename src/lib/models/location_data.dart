@@ -6,7 +6,7 @@ class LocationData {
   final double latitude;
   final double longitude;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
   final DateTime? deletedAt;
 
   LocationData({
@@ -17,7 +17,7 @@ class LocationData {
     required this.latitude,
     required this.longitude,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
     this.deletedAt,
   });
 
@@ -28,10 +28,10 @@ class LocationData {
       name: json['name'],
       descriptionText: json['description_text'],
       descriptionImageUrl: json['description_image_url'],
-      latitude: json['latitude'].toDouble(),
-      longitude: json['longitude'].toDouble(),
+      latitude: json['latitude'],
+      longitude: json['longitude'],
       createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
       deletedAt: json['deleted_at'] != null ? DateTime.parse(json['deleted_at']) : null,
     );
   }

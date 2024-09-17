@@ -9,14 +9,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.39"
-  apple_maps_flutter:
-    dependency: transitive
-    description:
-      name: apple_maps_flutter
-      sha256: "96b672d8fa5c99ef91dc16973adf646faed9c87d52729a16583275475d6c2aa4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.3.0"
   async:
     dependency: transitive
     description:
@@ -265,7 +257,7 @@ packages:
     source: hosted
     version: "2.9.0"
   google_maps_flutter_android:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: google_maps_flutter_android
       sha256: "075f550650a907a85d00d1e48f135e9cc326f1519652eb5f8caafebacabf7727"
@@ -281,13 +273,13 @@ packages:
     source: hosted
     version: "2.13.0"
   google_maps_flutter_platform_interface:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: google_maps_flutter_platform_interface
-      sha256: "4f6930fd668bf5d40feb2695d5695dbc0c35e5542b557a34ad35be491686d2ba"
+      sha256: "099874463dc4c9bff04fe4b2b8cf7284d2455c2deead8f9a59a87e1b9f028c69"
       url: "https://pub.dev"
     source: hosted
-    version: "2.9.0"
+    version: "2.9.2"
   google_maps_flutter_web:
     dependency: transitive
     description:
@@ -304,6 +296,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.15.4"
+  http:
+    dependency: "direct main"
+    description:
+      name: http
+      sha256: b9c29a161230ee03d3ccf545097fccd9b87a5264228c5d348202e0f0c28f9010
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.2"
   http_parser:
     dependency: transitive
     description:
@@ -376,14 +376,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.0"
-  platform_maps_flutter:
-    dependency: "direct main"
-    description:
-      name: platform_maps_flutter
-      sha256: "866b3270cf4efe0df1c9e6012840fb6f5623dd1844b1cfc6aaca4ba36b068f98"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.2"
   plugin_platform_interface:
     dependency: transitive
     description:

@@ -1,6 +1,4 @@
 PODS:
-  - apple_maps_flutter (0.0.1):
-    - Flutter
   - Firebase/Auth (10.28.0):
     - Firebase/CoreOnly
     - FirebaseAuth (~> 10.28.0)
@@ -69,7 +67,6 @@ PODS:
   - RecaptchaInterop (100.0.0)
 
 DEPENDENCIES:
-  - apple_maps_flutter (from `.symlinks/plugins/apple_maps_flutter/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
@@ -94,8 +91,6 @@ SPEC REPOS:
     - RecaptchaInterop
 
 EXTERNAL SOURCES:
-  apple_maps_flutter:
-    :path: ".symlinks/plugins/apple_maps_flutter/ios"
   firebase_auth:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
@@ -108,7 +103,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/google_maps_flutter_ios/ios"
 
 SPEC CHECKSUMS:
-  apple_maps_flutter: c59725efea39e13e703cde52a1d2b14866ad68a8
   Firebase: 5121c624121af81cbc81df3bda414b3c28c4f3c3
   firebase_auth: e778ee89483b86fe4200d1f8e9a1c52aa5fb64a8
   firebase_core: a9d0180d5285527884d07a41eb4a9ec9ed12cdb6
