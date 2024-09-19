@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../view/home.dart';
-import '../view/map.dart';
-import '../view/search.dart';
-import '../view/setting.dart';
+import 'package:StamComm/view/home.dart';
+import 'package:StamComm/view/display_map.dart';
+import 'package:StamComm/view/search.dart';
+import 'package:StamComm/view/setting.dart';
 
 
 class NavigateApp extends StatelessWidget {
@@ -25,7 +25,7 @@ class Navigate extends StatefulWidget {
 class _NavigateState extends State<Navigate> {
   int pageIndex = 0;
 
-  final List<Widget> pages = [HomePage(), MapPage(), SearchPage(), SettingPage()];
+  final List<Widget> pages = [HomePage(), DisplayMap(), SearchPage(), SettingPage()];
 
   @override
   Widget build(BuildContext context) {
