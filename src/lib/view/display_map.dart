@@ -128,50 +128,50 @@ class DisplayMapState extends State<DisplayMap> {
   Future<BitmapDescriptor> _getMarkerIcon(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
-      final Uint8List bytes = response.bodyBytes;
-      final ui.Codec codec = await ui.instantiateImageCodec(bytes, targetWidth: 200); // サイズを調整
-      final ui.FrameInfo frameInfo = await codec.getNextFrame();
-      final ui.Image image = frameInfo.image;
+      // final Uint8List bytes = response.bodyBytes;
+      // final ui.Codec codec = await ui.instantiateImageCodec(bytes, targetWidth: 200); // サイズを調整
+      // final ui.FrameInfo frameInfo = await codec.getNextFrame();
+      // final ui.Image image = frameInfo.image;
 
       // 枠の幅を定義
-      const double borderWidth = 10.0;
-      const double size = 100.0;
-      const double fullSize = size + borderWidth * 2; // 枠分を含めた全体のサイズ
+      // const double borderWidth = 10.0;
+      // const double size = 100.0;
+      // const double fullSize = size + borderWidth * 2; // 枠分を含めた全体のサイズ
 
       // 円形にトリミング
       final ui.PictureRecorder recorder = ui.PictureRecorder();
       final ui.Canvas canvas = ui.Canvas(recorder);
 
       // 円形の枠（赤色）
-      final ui.Paint borderPaint = ui.Paint()
-        ..color = ui.Color(0xFFFF0000) // 赤色
-        ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = borderWidth; // 枠の幅
+      // final ui.Paint borderPaint = ui.Paint()
+      //   ..color = ui.Color(0xFFFF0000) // 赤色
+      //   ..style = ui.PaintingStyle.stroke
+      //   ..strokeWidth = borderWidth; // 枠の幅
 
       // キャンバス中央に円を描画
-      canvas.drawOval(
-          Rect.fromLTWH(borderWidth, borderWidth, size, size), borderPaint);
+      // canvas.drawOval(
+      //     Rect.fromLTWH(borderWidth, borderWidth, size, size), borderPaint);
 
       // 画像を円形にクリップ
-      final ui.Path path = ui.Path()
-        ..addOval(Rect.fromLTWH(borderWidth, borderWidth, size, size));
-      canvas.clipPath(path);
+      // final ui.Path path = ui.Path()
+      //   ..addOval(Rect.fromLTWH(borderWidth, borderWidth, size, size));
+      // canvas.clipPath(path);
 
       // 画像を描画
-      const ui.Rect imageRect = Rect.fromLTWH(0.0, 0.0, size, size);
-      const ui.Rect targetRect =
-          Rect.fromLTWH(borderWidth, borderWidth, size, size);
-      canvas.drawImageRect(image, imageRect, targetRect, ui.Paint());
+      // const ui.Rect imageRect = Rect.fromLTWH(0.0, 0.0, size, size);
+      // const ui.Rect targetRect =
+      //     Rect.fromLTWH(borderWidth, borderWidth, size, size);
+      // canvas.drawImageRect(image, imageRect, targetRect, ui.Paint());
 
-      final ui.Image circularImage =
-          await recorder.endRecording().toImage(fullSize.toInt(), fullSize.toInt());
-      final ByteData? byteData =
-          await circularImage.toByteData(format: ui.ImageByteFormat.png);
+      // final ui.Image circularImage =
+      //     await recorder.endRecording().toImage(fullSize.toInt(), fullSize.toInt());
+      // final ByteData? byteData =
+      //     await circularImage.toByteData(format: ui.ImageByteFormat.png);
 
-      if (byteData != null) {
-        final Uint8List resizedBytes = byteData.buffer.asUint8List();
-        return BitmapDescriptor.fromBytes(resizedBytes);
-      }
+      // if (byteData != null) {
+      //   final Uint8List resizedBytes = byteData.buffer.asUint8List();
+      //   return BitmapDescriptor.fromBytes(resizedBytes);
+      // }
     }
     // 何らかのエラーが発生した場合、デフォルトアイコンを返す
     return BitmapDescriptor.defaultMarker;
