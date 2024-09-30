@@ -57,5 +57,11 @@
     <string>Required to post location information when posting photos and videos.</string>
     <!-- End of the geolocator Section -->
 
+	<key>com.apple.developer.nfc.readersession.formats</key>
+	<array>
+		<string>NDEF</string>
+	</array>
+
+
 </dict>
 </plist>
