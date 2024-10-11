@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:StamComm/component/stamp_success_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; 
 import 'dart:math';
 
 class NFCButton extends StatefulWidget {
@@ -15,6 +16,7 @@ class NFCButton extends StatefulWidget {
 
 class _NFCButtonState extends State<NFCButton> {
   String _name = ''; // 取得した名前を保存する変数
+  String _id = ''; // 取得したIDを保存する変数
   bool _checkPassed = false; // チェック結果のフラグ
 
   // NFCの読み取り
@@ -39,6 +41,7 @@ class _NFCButtonState extends State<NFCButton> {
 
             // 各レコードの処理
             String name = '';
+            String id = '';
             double latitude = 0;
             double longitude = 0;
 
@@ -67,6 +70,11 @@ class _NFCButtonState extends State<NFCButton> {
                   latitude = double.tryParse(latLon[0]) ?? 0.0;
                   longitude = double.tryParse(latLon[1]) ?? 0.0;
                 }
+
+                if (record.type.isNotEmpty && record == records[0]) {
+                  id = utf8.decode(payload);
+                  print('ID Payload: $id');
+                }
               }
             }
 
@@ -90,15 +98,19 @@ class _NFCButtonState extends State<NFCButton> {
 
             if (checkPassed) {
               setState(() {
+                _id = id;
                 _name = name;
                 _checkPassed = true;
               });
+
+              // IDをローカルストレージに保存
+              await _saveIdToLocalStorage(id);
 
               // 新しい画面に遷移してデータを表示
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => StampSuccessScreen(name: _name),
+                  builder: (context) => StampSuccessScreen(name: _name, id: _id),
                 ),
               );
             } else {
@@ -120,6 +132,13 @@ class _NFCButtonState extends State<NFCButton> {
         },
       );
     }
+  }
+
+  // ローカルストレージにIDを保存するメソッド
+  Future<void> _saveIdToLocalStorage(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('id', id); // 'id' をキーとしてIDを保存
+    print('ID saved to local storage: $id');
   }
 
   // エラーダイアログを表示するメソッド

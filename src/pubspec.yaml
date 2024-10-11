@@ -45,6 +45,10 @@ dependencies:
   google_maps_flutter_platform_interface: ^2.9.3
   google_maps_flutter_android: ^2.14.5
   nfc_manager: ^3.5.0
+  supabase_flutter: ^2.8.0
+  shared_preferences: ^2.3.2
+  sliding_up_panel: ^2.0.0+1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
