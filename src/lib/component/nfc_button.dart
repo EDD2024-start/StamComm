@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:StamComm/component/stamp_success_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart'; 
 import 'dart:math';
+import 'package:flutter/services.dart' show rootBundle;
 
 class NFCButton extends StatefulWidget {
   const NFCButton({super.key});
@@ -16,6 +17,8 @@ class NFCButton extends StatefulWidget {
 
 class _NFCButtonState extends State<NFCButton> {
   String _name = ''; // 取得した名前を保存する変数
+  String _descriptionImageUrl = ''; // 取得した画像URLを保存する変数
+  String _descriptionText= ''; // 取得した説明文を保存する変数
   String _id = ''; // 取得したIDを保存する変数
   bool _checkPassed = false; // チェック結果のフラグ
 
@@ -39,8 +42,6 @@ class _NFCButtonState extends State<NFCButton> {
             List<NdefRecord> records = message.records;
             print('Records: $records');
 
-            // 各レコードの処理
-            String name = '';
             String id = '';
             double latitude = 0;
             double longitude = 0;
@@ -52,30 +53,22 @@ class _NFCButtonState extends State<NFCButton> {
               if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
                   record.type.isNotEmpty &&
                   record.type[0] == 0x54) { // 'T' == 0x54 (Text record)
-                String text = utf8.decode(payload.sublist(3));
-                print('Text Payload: $text');
-                name = text;
+                String recordId = utf8.decode(payload.sublist(3));
+                print('id Payload: $recordId');
+                id = recordId;
               }
+            }
 
-              // URIレコード（緯度経度）
-              else if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
-                  record.type.isNotEmpty &&
-                  record.type[0] == 0x55) { // 'U' == 0x55 (URI record)
-                String geoUri = utf8.decode(payload.sublist(1)); // URIは最初のバイトをスキップ
-                print('Geo Payload: $geoUri');
-
-                if (geoUri.startsWith('geo:')) {
-                  // "geo:" 以降の部分を分割して緯度経度を取得
-                  List<String> latLon = geoUri.substring(4).split(',');
-                  latitude = double.tryParse(latLon[0]) ?? 0.0;
-                  longitude = double.tryParse(latLon[1]) ?? 0.0;
-                }
-
-                if (record.type.isNotEmpty && record == records[0]) {
-                  id = utf8.decode(payload);
-                  print('ID Payload: $id');
-                }
-              }
+            // assets/data/sample_data.jsonからイベント情報を読み込む
+            final eventData = await _loadEventData();
+            final event = eventData.firstWhere((element) => element['id'] == id, orElse: () => null);
+            print('Event: $event');
+            if (event != null) {
+              latitude = event['latitude'];
+              longitude = event['longitude'];
+            } else {
+              _showErrorDialog('対応するイベントが見つかりません');
+              return;
             }
 
             // 現在の位置情報を取得
@@ -93,13 +86,14 @@ class _NFCButtonState extends State<NFCButton> {
 
             print('Distance to NFC tag: $distance meters');
 
-            // 許容範囲内（例えば50メートル以内）であればチェック成功
-            bool checkPassed = distance <= 50; // 許容範囲50m
+            bool checkPassed = distance <= 30;
 
             if (checkPassed) {
               setState(() {
                 _id = id;
-                _name = name;
+                _name = event['name']; // イベント名を取得
+                _descriptionImageUrl = event['description_image_url']; // イメージURLを取得
+                _descriptionText = event['description_text']; // 説明文を取得
                 _checkPassed = true;
               });
 
@@ -110,11 +104,16 @@ class _NFCButtonState extends State<NFCButton> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => StampSuccessScreen(name: _name, id: _id),
+                  builder: (context) => StampSuccessScreen(
+                    name: _name, 
+                    id: _id, 
+                    descriptionImageUrl: _descriptionImageUrl, // 修正: 画像URLの変数名を一致させる
+                    descriptionText: _descriptionText,
+                  ),
                 ),
               );
             } else {
-              _showErrorDialog('現在位置とNFCタグの位置が遠すぎます');
+              _showErrorDialog('現在位置とイベントの位置が遠すぎます');
             }
 
           } catch (e) {
@@ -134,11 +133,18 @@ class _NFCButtonState extends State<NFCButton> {
     }
   }
 
+  // assets/data/sample_data.jsonからイベント情報を読み込む
+  Future<List<dynamic>> _loadEventData() async {
+    String jsonString = await rootBundle.loadString('assets/data/sample_data.json');
+    return json.decode(jsonString);
+  }
+
   // ローカルストレージにIDを保存するメソッド
   Future<void> _saveIdToLocalStorage(String id) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('id', id); // 'id' をキーとしてIDを保存
+    await prefs.setString('id', id);
     print('ID saved to local storage: $id');
+    print(prefs.getString('id')); 
   }
 
   // エラーダイアログを表示するメソッド
@@ -158,9 +164,9 @@ class _NFCButtonState extends State<NFCButton> {
     );
   }
 
-  // 緯度・経度から距離を計算するメソッド（ハバースの公式を使用）
+  // 緯度・経度から距離を計算するメソッド
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    const double radiusOfEarth = 6371000; // 地球の半径（メートル）
+    const double radiusOfEarth = 6371000;
     double dLat = _degreesToRadians(lat2 - lat1);
     double dLon = _degreesToRadians(lon2 - lon1);
 
@@ -170,7 +176,7 @@ class _NFCButtonState extends State<NFCButton> {
         sin(dLon / 2) * sin(dLon / 2);
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
-    return radiusOfEarth * c; // 距離（メートル）
+    return radiusOfEarth * c;
   }
 
   double _degreesToRadians(double degrees) {

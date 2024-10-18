@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 
 // スタンプ取得成功画面
 class StampSuccessScreen extends StatelessWidget {
-  final String name;
-  final String id;  // IDを受け取るための変数を追加
+  final String name; // 名前を受け取るための変数
+  final String id; // IDを受け取るための変数
+  final String descriptionImageUrl; // 画像URLを受け取るための変数
+  final String descriptionText; // 説明文を受け取るための変数
 
   const StampSuccessScreen({
     super.key, 
     required this.name, 
-    required this.id,  // コンストラクタにもIDを追加
+    required this.id, 
+    required this.descriptionText, // 引数を適切に受け取る
+    required this.descriptionImageUrl, // 引数を適切に受け取る
   });
 
   @override
@@ -17,11 +21,11 @@ class StampSuccessScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('スタンプ取得'),
         leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.pop(context, id);  // idを返す
-        },
-      ),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context, id); // idを返す
+          },
+        ),
       ),
       body: Center(
         child: Padding(
@@ -37,13 +41,28 @@ class StampSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                '名前：$name',
+                '$name',
                 style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 10),
               Text(
-                'ID：$id',  // IDを表示する部分を追加
-                style: const TextStyle(fontSize: 18),
+                descriptionText,
+                style: const TextStyle(fontSize: 16),
+              ),
+              // 画像URLを表示する部分
+              Image.network(
+                descriptionImageUrl, 
+                fit: BoxFit.cover, // 画像を適切に表示
+                errorBuilder: (context, error, stackTrace) {
+                  return const Text('画像を読み込めませんでした。'); // エラーハンドリング
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, id); // idを返す
+                },
+                child: const Text('戻る'),
               ),
             ],
           ),

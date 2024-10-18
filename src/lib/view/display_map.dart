@@ -9,6 +9,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:StamComm/models/location_data.dart'; 
 import 'package:StamComm/component/nfc_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DisplayMap extends StatefulWidget {
   const DisplayMap({super.key});
@@ -20,6 +21,7 @@ class DisplayMapState extends State<DisplayMap> {
   CameraPosition _initialLocation = const CameraPosition(target: LatLng(36.3845, 138.2736));  // 初期位置
   late GoogleMapController mapController;
   Set<Marker> _markers = {};
+  String? savedEventId;
   LocationData? selectedLocation;  // タップされたマーカーの情報を保持
   final PanelController _panelController = PanelController();  // パネルを制御するコントローラ
 
@@ -27,8 +29,18 @@ class DisplayMapState extends State<DisplayMap> {
   void initState() {
     super.initState();
     _initializeMapRenderer();
-    _loadMarkers();  // JSONデータをロードしてマーカーを設定する
+    _loadSavedEventIds(); // SharedPreferencesからのID読み込み
   }
+
+  Future<void> _loadSavedEventIds() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      savedEventId = prefs.getString('id');
+      print('Saved Event ID: $savedEventId');  // setState内に移動
+    });
+    _loadMarkers();  // データをロードしてマーカーを設定
+  }
+
 
   void _initializeMapRenderer() {
     final GoogleMapsFlutterPlatform mapsImplementation = GoogleMapsFlutterPlatform.instance;
@@ -87,9 +99,11 @@ class DisplayMapState extends State<DisplayMap> {
             snippet: location.descriptionText,
           ),
           onTap: () {
+            print('Marker tapped: ${location.name}');
             setState(() {
               selectedLocation = location;  // タップされたマーカーの情報をセット
             });
+            _loadSavedEventIds(); // SharedPreferencesからのID読み込み
             _panelController.open();  // パネルを開く
           },
         );
@@ -140,7 +154,9 @@ class DisplayMapState extends State<DisplayMap> {
         onTap: () {
           setState(() {
             selectedLocation = location;  // タップされたマーカーの情報をセット
+            _loadSavedEventIds(); // SharedPreferencesからのID読み込み
           });
+          
           _panelController.open();  // パネルを開く
         },
       );
@@ -207,6 +223,13 @@ class DisplayMapState extends State<DisplayMap> {
                       Text(selectedLocation!.descriptionText),
                       SizedBox(height: 10),
                       Image.network(selectedLocation!.descriptionImageUrl),
+                      SizedBox(height: 10),
+                      // 獲得済みのスタンプに関するテキストを表示
+                      if ( savedEventId != null && savedEventId == selectedLocation!.id)
+                        Text(
+                          "このスタンプは獲得済みです。",
+                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        ),
                     ],
                   )
                 : Center(child: Text("マーカーをタップしてください")),
