@@ -1,3 +1,4 @@
+import 'package:StamComm/component/navigate.dart';
 import 'package:StamComm/view/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:StamComm/utils/constants.dart';
@@ -36,9 +37,9 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       await supabase.auth.signUp(
           email: email, password: password, data: {'username': username});
-      // TODO: チャットページ実装後に下記コードを追加
-      // Navigator.of(context)
-      //     .pushAndRemoveUntil(ChatPage.route(), (route) => false);
+      // HomePageへ遷移
+      Navigator.of(context)
+          .pushAndRemoveUntil(NavigateApp.route(), (route) => false);
     } on AuthException catch (error) {
       context.showErrorSnackBar(message: error.message);
     } catch (error) {
