@@ -4,9 +4,14 @@ import 'package:StamComm/view/display_map.dart';
 import 'package:StamComm/view/search.dart';
 import 'package:StamComm/view/setting.dart';
 
-
 class NavigateApp extends StatelessWidget {
   static const String _title = 'Flutter Code Sample';
+
+  static Route<void> route() {
+    return MaterialPageRoute<void>(builder: (_) => const NavigateApp());
+  }
+
+  const NavigateApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,12 @@ class Navigate extends StatefulWidget {
 class _NavigateState extends State<Navigate> {
   int pageIndex = 0;
 
-  final List<Widget> pages = [HomePage(), DisplayMap(), SearchPage(), SettingPage()];
+  final List<Widget> pages = [
+    HomePage(),
+    DisplayMap(),
+    SearchPage(),
+    SettingPage()
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -56,4 +66,3 @@ class _NavigateState extends State<Navigate> {
     );
   }
 }
-
