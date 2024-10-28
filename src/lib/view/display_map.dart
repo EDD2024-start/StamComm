@@ -7,9 +7,10 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:StamComm/models/location_data.dart'; 
+import 'package:StamComm/models/stamp_data.dart'; 
 import 'package:StamComm/component/nfc_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DisplayMap extends StatefulWidget {
   const DisplayMap({super.key});
@@ -19,10 +20,11 @@ class DisplayMap extends StatefulWidget {
 
 class DisplayMapState extends State<DisplayMap> {
   CameraPosition _initialLocation = const CameraPosition(target: LatLng(36.3845, 138.2736));  // 初期位置
+  final supabase = Supabase.instance.client;
   late GoogleMapController mapController;
   Set<Marker> _markers = {};
   String? savedEventId;
-  LocationData? selectedLocation;  // タップされたマーカーの情報を保持
+  StampData? selectedLocation;  // タップされたマーカーの情報を保持
   final PanelController _panelController = PanelController();  // パネルを制御するコントローラ
 
   @override
@@ -32,11 +34,11 @@ class DisplayMapState extends State<DisplayMap> {
     _loadSavedEventIds(); // SharedPreferencesからのID読み込み
   }
 
+
   Future<void> _loadSavedEventIds() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       savedEventId = prefs.getString('id');
-      print('Saved Event ID: $savedEventId');  // setState内に移動
     });
     _loadMarkers();  // データをロードしてマーカーを設定
   }
@@ -82,12 +84,14 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
-    final jsonString = await _loadSampleDataAsset();
+    final jsonString = await _loadStampsFromSupabase();
     final List<dynamic> jsonData = json.decode(jsonString);
+    print("json Data:"+jsonData.toString());
     Set<Marker> markers = {};
 
     for (var item in jsonData) {
-      final location = LocationData.fromJson(item);
+      final location = StampData.fromJson(item);
+      print("location: ${location.toString()}");
       if (_isLocationInBounds(LatLng(location.latitude, location.longitude), bounds)) {
         final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
         final marker = Marker(
@@ -99,7 +103,6 @@ class DisplayMapState extends State<DisplayMap> {
             snippet: location.descriptionText,
           ),
           onTap: () {
-            print('Marker tapped: ${location.name}');
             setState(() {
               selectedLocation = location;  // タップされたマーカーの情報をセット
             });
@@ -122,8 +125,14 @@ class DisplayMapState extends State<DisplayMap> {
     return bounds.contains(location);
   }
 
-  Future<String> _loadSampleDataAsset() async {
-    return await rootBundle.loadString('assets/data/sample_data.json');
+  Future<String> _loadStampsFromSupabase() async {
+    final response = await supabase
+        .from('stamps') // データベーステーブル名
+        .select();
+    // データ取得成功時
+    final data = json.encode(response);
+    print("Supabase data: $data");
+    return data;
   }
 
   Future<BitmapDescriptor> _getMarkerIcon(String url) async {
@@ -136,24 +145,27 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkers() async {
-    final jsonString = await _loadSampleDataAsset();
+    final jsonString = await _loadStampsFromSupabase();
+    print("jsonString:"+jsonString); // jsonStringを確認する
+
     final List<dynamic> jsonData = json.decode(jsonString);
     Set<Marker> markers = {};
 
     for (var item in jsonData) {
-      final location = LocationData.fromJson(item);
-      final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
+      final stamp = StampData.fromJson(item);
+      print("location: ${stamp.toString()}");
+      final markerIcon = await _getMarkerIcon(stamp.descriptionImageUrl);
       final marker = Marker(
-        markerId: MarkerId(location.id),
-        position: LatLng(location.latitude, location.longitude),
+        markerId: MarkerId(stamp.id),
+        position: LatLng(stamp.latitude, stamp.longitude),
         icon: markerIcon,
         infoWindow: InfoWindow(
-          title: location.name,
-          snippet: location.descriptionText,
+          title: stamp.name,
+          snippet: stamp.descriptionText,
         ),
         onTap: () {
           setState(() {
-            selectedLocation = location;  // タップされたマーカーの情報をセット
+            selectedLocation = stamp;  // タップされたマーカーの情報をセット
             _loadSavedEventIds(); // SharedPreferencesからのID読み込み
           });
           
@@ -169,6 +181,7 @@ class DisplayMapState extends State<DisplayMap> {
       });
     }
   }
+
 
   void _getCurrentLocation() async {
     try {
