@@ -107,14 +107,12 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
-    final jsonString = await _loadStampsFromSupabase();
-    final List<dynamic> jsonData = json.decode(jsonString);
-    print("json Data_bounds:"+jsonData.toString());
+    // Supabaseからデータを取得し、StampDataのリストとして処理
+    final List<StampData> stampDataList = await _loadStampsFromSupabase();
     Set<Marker> markers = {};
 
-    for (var item in jsonData) {
-      final location = StampData.fromJson(item);
-      print("location: ${location.toString()}");
+    for (var location in stampDataList) {
+      // 範囲内にあるかどうかを確認
       if (_isLocationInBounds(LatLng(location.latitude, location.longitude), bounds)) {
         final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
         final marker = Marker(
@@ -129,7 +127,7 @@ class DisplayMapState extends State<DisplayMap> {
             setState(() {
               selectedLocation = location;  // タップされたマーカーの情報をセット
             });
-            _loadSavedEventIds(); // SharedPreferencesからのID読み込み
+            _loadSavedEventIds();
             _panelController.open();  // パネルを開く
           },
         );
@@ -137,6 +135,7 @@ class DisplayMapState extends State<DisplayMap> {
       }
     }
 
+    // マーカーを表示
     if (mounted) {
       setState(() {
         _markers = markers;
@@ -144,18 +143,24 @@ class DisplayMapState extends State<DisplayMap> {
     }
   }
 
+
   bool _isLocationInBounds(LatLng location, LatLngBounds bounds) {
     return bounds.contains(location);
   }
 
-  Future<String> _loadStampsFromSupabase() async {
+  Future<List<StampData>> _loadStampsFromSupabase() async {
     final response = await supabase
         .from('stamps') // データベーステーブル名
         .select();
     // データ取得成功時
-    final data = json.encode(response);
-    print("Supabase data: $data");
-    return data;
+    if (response == "null") {
+      print("Error: response is null");
+      return [];
+    }
+    print("データを取得しました: $response");
+     return (response as List<dynamic>)
+      .map((item) => StampData.fromJson(item))
+      .toList();
   }
 
   Future<BitmapDescriptor> _getMarkerIcon(String url) async {
@@ -168,46 +173,40 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkers() async {
-    final jsonString = await _loadStampsFromSupabase();
-    if (jsonString == null || jsonString.isEmpty) {
-      print("jsonString is null or empty");
-    } else {
-      print("jsonString:" + jsonString);
-    }
-    final List<dynamic> jsonData = json.decode(jsonString);
+    print("load開始");
+    final stampDataList = await _loadStampsFromSupabase();
+    print("load完了");
     Set<Marker> markers = {};
 
-    for (var item in jsonData) {
-      final stamp = StampData.fromJson(item);
-      print("location: ${stamp.toString()}");
-      final markerIcon = await _getMarkerIcon(stamp.descriptionImageUrl);
+    for (var location in stampDataList) {
+      final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
       final marker = Marker(
-        markerId: MarkerId(stamp.id),
-        position: LatLng(stamp.latitude, stamp.longitude),
+        markerId: MarkerId(location.id),
+        position: LatLng(location.latitude, location.longitude),
         icon: markerIcon,
         infoWindow: InfoWindow(
-          title: stamp.name,
-          snippet: stamp.descriptionText,
+          title: location.name,
+          snippet: location.descriptionText,
         ),
         onTap: () {
           setState(() {
-            selectedLocation = stamp;  // タップされたマーカーの情報をセット
-            _loadSavedEventIds(); // SharedPreferencesからのID読み込み
+            selectedLocation = location;
+            _loadSavedEventIds();
           });
-          
-          _panelController.open();  // パネルを開く
+          _panelController.open();
         },
       );
+      print("marker added: $marker");
       markers.add(marker);
     }
 
     if (mounted) {
       setState(() {
         _markers = markers;
+        print("markers set: $_markers");
       });
     }
   }
-
 
   void _getCurrentLocation() async {
     try {
