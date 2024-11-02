@@ -7,9 +7,10 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+
 import 'package:StamComm/models/stamp_data.dart'; 
+import 'package:StamComm/models/user_stamps_data.dart';
 import 'package:StamComm/component/nfc_button.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DisplayMap extends StatefulWidget {
@@ -34,15 +35,34 @@ class DisplayMapState extends State<DisplayMap> {
     _loadSavedEventIds(); // SharedPreferencesからのID読み込み
   }
 
-
   Future<void> _loadSavedEventIds() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      savedEventId = prefs.getString('id');
-    });
-    _loadMarkers();  // データをロードしてマーカーを設定
-  }
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        print("user is not signed in");
+        return;
+      }
 
+      final response = await supabase
+          .from('user_stamps')
+          .select('stamp_id')
+          .eq('user_id', userId);
+      
+      if(response != null && response.isNotEmpty){
+        final stampIds = response.map((row)=> row['stamp_id'] as String).toList();
+
+        setState(() {
+          savedEventId = stampIds.contains(selectedLocation?.id) ? selectedLocation?.id : null;
+        });
+      }else{
+        print("No matching data found");
+      }
+
+      _loadMarkers();
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
 
   void _initializeMapRenderer() {
     final GoogleMapsFlutterPlatform mapsImplementation = GoogleMapsFlutterPlatform.instance;
@@ -86,7 +106,7 @@ class DisplayMapState extends State<DisplayMap> {
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
     final jsonString = await _loadStampsFromSupabase();
     final List<dynamic> jsonData = json.decode(jsonString);
-    print("json Data:"+jsonData.toString());
+    print("json Data_bounds:" + jsonData.toString());
     Set<Marker> markers = {};
 
     for (var item in jsonData) {
@@ -146,8 +166,11 @@ class DisplayMapState extends State<DisplayMap> {
 
   Future<void> _loadMarkers() async {
     final jsonString = await _loadStampsFromSupabase();
-    print("jsonString:"+jsonString); // jsonStringを確認する
-
+    if (jsonString == null || jsonString.isEmpty) {
+      print("jsonString is null or empty");
+    } else {
+      print("jsonString:" + jsonString);
+    }
     final List<dynamic> jsonData = json.decode(jsonString);
     Set<Marker> markers = {};
 
@@ -181,7 +204,6 @@ class DisplayMapState extends State<DisplayMap> {
       });
     }
   }
-
 
   void _getCurrentLocation() async {
     try {
@@ -224,31 +246,9 @@ class DisplayMapState extends State<DisplayMap> {
           ),
           SlidingUpPanel(
             controller: _panelController,
-            panel: selectedLocation != null
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        selectedLocation!.name,
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 10),
-                      Text(selectedLocation!.descriptionText),
-                      SizedBox(height: 10),
-                      Image.network(selectedLocation!.descriptionImageUrl),
-                      SizedBox(height: 10),
-                      // 獲得済みのスタンプに関するテキストを表示
-                      if ( savedEventId != null && savedEventId == selectedLocation!.id)
-                        Text(
-                          "このスタンプは獲得済みです。",
-                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                        ),
-                    ],
-                  )
-                : Center(child: Text("マーカーをタップしてください")),
-            minHeight: 100,
-            maxHeight: 400,
-            borderRadius: BorderRadius.circular(15.0),
+            minHeight: 0.1,
+            maxHeight: 0.5 * height,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
         ],
       ),

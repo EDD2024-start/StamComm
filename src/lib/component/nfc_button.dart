@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:StamComm/component/stamp_success_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart'; 
 import 'dart:math';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+
 
 class NFCButton extends StatefulWidget {
   const NFCButton({super.key});
@@ -21,6 +23,7 @@ class _NFCButtonState extends State<NFCButton> {
   String _descriptionText= ''; // 取得した説明文を保存する変数
   String _id = ''; // 取得したIDを保存する変数
   bool _checkPassed = false; // チェック結果のフラグ
+  final supabase = Supabase.instance.client;
 
   // NFCの読み取り
   void readNfc() async {
@@ -60,7 +63,7 @@ class _NFCButtonState extends State<NFCButton> {
             }
 
             // assets/data/sample_data.jsonからイベント情報を読み込む
-            final eventData = await _loadEventData();
+            final eventData = await _loadStampData();
             final event = eventData.firstWhere((element) => element['id'] == id, orElse: () => null);
             print('Event: $event');
             if (event != null) {
@@ -98,7 +101,7 @@ class _NFCButtonState extends State<NFCButton> {
               });
 
               // IDをローカルストレージに保存
-              await _saveIdToLocalStorage(id);
+              await _saveUserStamp(id);
 
               // 新しい画面に遷移してデータを表示
               Navigator.push(
@@ -133,18 +136,40 @@ class _NFCButtonState extends State<NFCButton> {
     }
   }
 
-  // assets/data/sample_data.jsonからイベント情報を読み込む
-  Future<List<dynamic>> _loadEventData() async {
-    String jsonString = await rootBundle.loadString('assets/data/sample_data.json');
-    return json.decode(jsonString);
+  Future<List<dynamic>> _loadStampData() async {
+    final response = await supabase
+        .from('stamps') // データベーステーブル名
+        .select();
+    // データ取得成功時
+    final data = json.encode(response);
+    print("Supabase data: $data");
+    return json.decode(data);
   }
 
-  // ローカルストレージにIDを保存するメソッド
-  Future<void> _saveIdToLocalStorage(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('id', id);
-    print('ID saved to local storage: $id');
-    print(prefs.getString('id')); 
+  // 取得済みスタンプとしてuser_stampsにデータを挿入するメソッド
+  Future<void> _saveUserStamp(String stampId) async {
+    // final prefs = await SharedPreferences.getInstance();
+    // await prefs.setString('id', id);
+    // print('ID saved to local storage: $id');
+    // print(prefs.getString('id')); 
+    try{
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        print("User is not logged in");
+        return;
+      }
+
+      final currentTime = DateTime.now().toUtc().toIso8601String();
+      final uuid = Uuid();
+      final response = await supabase.from('user_stamps').insert({
+        'id':uuid.v4(),
+        'user_id': userId,
+        'stamp_id': stampId,
+        'created_at': currentTime,
+      });
+    } catch (e) {
+      print("Error: $e");
+    }
   }
 
   // エラーダイアログを表示するメソッド
