@@ -10,6 +10,7 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import 'package:StamComm/models/stamp_data.dart'; 
 import 'package:StamComm/models/user_stamps_data.dart';
+
 import 'package:StamComm/component/nfc_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -34,6 +35,7 @@ class DisplayMapState extends State<DisplayMap> {
     _initializeMapRenderer();
     _loadSavedEventIds(); // SharedPreferencesからのID読み込み
   }
+
 
   Future<void> _loadSavedEventIds() async {
     try {
@@ -63,6 +65,7 @@ class DisplayMapState extends State<DisplayMap> {
       print("Error: $e");
     }
   }
+
 
   void _initializeMapRenderer() {
     final GoogleMapsFlutterPlatform mapsImplementation = GoogleMapsFlutterPlatform.instance;
@@ -106,7 +109,7 @@ class DisplayMapState extends State<DisplayMap> {
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
     final jsonString = await _loadStampsFromSupabase();
     final List<dynamic> jsonData = json.decode(jsonString);
-    print("json Data_bounds:" + jsonData.toString());
+    print("json Data_bounds:"+jsonData.toString());
     Set<Marker> markers = {};
 
     for (var item in jsonData) {
@@ -205,6 +208,7 @@ class DisplayMapState extends State<DisplayMap> {
     }
   }
 
+
   void _getCurrentLocation() async {
     try {
       Position position = await Geolocator.getCurrentPosition();
@@ -246,9 +250,31 @@ class DisplayMapState extends State<DisplayMap> {
           ),
           SlidingUpPanel(
             controller: _panelController,
-            minHeight: 0.1,
-            maxHeight: 0.5 * height,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            panel: selectedLocation != null
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        selectedLocation!.name,
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 10),
+                      Text(selectedLocation!.descriptionText),
+                      SizedBox(height: 10),
+                      Image.network(selectedLocation!.descriptionImageUrl),
+                      SizedBox(height: 10),
+                      // 獲得済みのスタンプに関するテキストを表示
+                      if ( savedEventId != null && savedEventId == selectedLocation!.id)
+                        Text(
+                          "このスタンプは獲得済みです。",
+                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        ),
+                    ],
+                  )
+                : Center(child: Text("マーカーをタップしてください")),
+            minHeight: 100,
+            maxHeight: 400,
+            borderRadius: BorderRadius.circular(15.0),
           ),
         ],
       ),
