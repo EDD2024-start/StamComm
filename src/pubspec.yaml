@@ -48,6 +48,7 @@ dependencies:
   supabase_flutter: ^2.8.0
   shared_preferences: ^2.3.2
   sliding_up_panel: ^2.0.0+1
+  flutter_launcher_icons: ^0.14.1
 
 dev_dependencies:
   flutter_test:
@@ -104,3 +105,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon_stamcomm.png"
+  remove_alpha_ios: true
