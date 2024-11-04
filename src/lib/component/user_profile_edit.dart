@@ -1,7 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:StamComm/utils/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../component/display_user_profile.dart'; // 新しいファイルをインポート
+import '../component/display_user_profile.dart';
 
 class UsersEdits extends StatefulWidget {
   UsersEdits({Key? key}) : super(key: key);
@@ -13,34 +12,43 @@ class UsersEdits extends StatefulWidget {
 class _UsersEditsState extends State<UsersEdits> {
   final TextEditingController _textContName = TextEditingController();
   final TextEditingController _textContProf = TextEditingController();
-  String _editTextName = '';
-  String _editTextProf = '';
+
+  late final String myUserId;
 
   @override
   void initState() {
     super.initState();
-    _checkUserProfile();
+    myUserId = supabase.auth.currentUser!.id;
+    _loadUserProfile();
   }
 
-  Future<void> _checkUserProfile() async {
-    // Firestoreからユーザーデータを取得する処理
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      DocumentSnapshot userProfile = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+  Future<void> _loadUserProfile() async {
+    try {
+      final response =
+          await supabase.from('profiles').select().eq('id', myUserId).single();
 
-      if (userProfile.exists) {
-        // ユーザーデータが存在する場合、DisplayUserProfileに遷移
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => DisplayUserProfile()),
-        );
+      if (response != null) {
+        // 必要に応じてエラーメッセージをユーザーに表示
+      } else {
+        final data = response;
+        if (data != null) {
+          _textContName.text = data['username'] ?? '';
+          _textContProf.text = data['user_comment'] ?? '';
+        }
       }
+    } catch (e) {
+      // 必要に応じてエラーメッセージをユーザーに表示
     }
   }
 
+  @override
+  void dispose() {
+    _textContName.dispose();
+    _textContProf.dispose();
+    super.dispose();
+  }
+
+  /// ユーザープロフィール編集画面を表示するウィジェット。
   @override
   Widget build(BuildContext context) {
     final bottomSpace = MediaQuery.of(context).viewInsets.bottom;
@@ -60,32 +68,36 @@ class _UsersEditsState extends State<UsersEdits> {
                 const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white, backgroundColor: Colors.blue, // ボタンのテキスト色
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.blue, // ボタンのテキスト色
               ),
               child: const Text('保存'),
               onPressed: () async {
-                User? user = FirebaseAuth.instance.currentUser;
-                Map<String, dynamic> insertObj = {
-                  'id': user!.uid,
-                  'name': _textContName.text,
-                  'note': _textContProf.text,
-                  'vaild': true,
-                  'created_at': FieldValue.serverTimestamp(),
-                  'modified_at': FieldValue.serverTimestamp()
+                final user = supabase.auth.currentUser;
+                if (user == null) {
+                  // 必要に応じてエラーメッセージをユーザーに表示
+                  return;
+                }
+
+                Map<String, dynamic> upsertObj = {
+                  'id': user.id,
+                  'username': _textContName.text,
+                  'user_comment':
+                      _textContProf.text.isNotEmpty ? _textContProf.text : null,
+                  'updated_at': DateTime.now().toIso8601String(),
                 };
+
                 try {
-                  var doc = await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.uid);
-                  await doc.set(insertObj);
-                  Navigator.push(
+                  // ユーザーデータをSupabaseにupsert
+                  await supabase.from('profiles').upsert(upsertObj);
+                  // 保存完了後、プロフィール表示ページに戻る
+                  Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => DisplayUserProfile()), // 登録後に遷移
+                        builder: (context) => DisplayUserProfile()),
                   );
                 } catch (e) {
-                  print('-----insert error----');
-                  print(e);
+                  // 必要に応じてエラーメッセージをユーザーに表示
                 }
               },
             ),
@@ -108,20 +120,16 @@ class _UsersEditsState extends State<UsersEdits> {
                         label: '名前',
                         controller: _textContName,
                         onChanged: (val) {
-                          if (val != null && val != '') {
-                            _editTextName = val;
-                          }
+                          // 必要に応じて処理を追加
                         },
                       ),
                       const SizedBox(height: 16.0),
                       _buildTextField(
-                        label:'ひとこと',
+                        label: 'ひとこと',
                         controller: _textContProf,
                         maxLines: 2,
                         onChanged: (val) {
-                          if (val != null && val != '') {
-                            _editTextProf = val;
-                          }
+                          // 必要に応じて処理を追加
                         },
                       ),
                     ],
@@ -139,7 +147,7 @@ class _UsersEditsState extends State<UsersEdits> {
     required String label,
     required TextEditingController controller,
     int maxLines = 1,
-    required Function(String?) onChanged,
+    required Function(String) onChanged,
   }) {
     return TextField(
       controller: controller,
