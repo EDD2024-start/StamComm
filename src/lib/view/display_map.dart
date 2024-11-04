@@ -6,9 +6,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:StamComm/models/location_data.dart'; 
 import 'package:StamComm/component/nfc_button.dart';
+import 'package:StamComm/component/qr_button.dart'; // QRButtonをインポート
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DisplayMap extends StatefulWidget {
@@ -239,7 +241,20 @@ class DisplayMapState extends State<DisplayMap> {
           ),
         ],
       ),
-      floatingActionButton: const NFCButton(),
+      floatingActionButton: SpeedDial(
+        icon: Icons.add,
+        activeIcon: Icons.close,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        children: [
+          SpeedDialChild(
+            child: const NFCButton()
+          ),
+          SpeedDialChild(
+            child: const QRButton()
+          ),
+        ]
+      )
     );
   }
 }

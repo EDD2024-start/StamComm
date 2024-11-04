@@ -48,6 +48,8 @@ dependencies:
   supabase_flutter: ^2.8.0
   shared_preferences: ^2.3.2
   sliding_up_panel: ^2.0.0+1
+  qr_code_scanner: ^1.0.1
+  flutter_speed_dial: ^7.0.0
 
 dev_dependencies:
   flutter_test:
