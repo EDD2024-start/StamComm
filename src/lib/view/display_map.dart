@@ -26,6 +26,7 @@ class DisplayMapState extends State<DisplayMap> {
   String? savedEventId;
   LocationData? selectedLocation;  // タップされたマーカーの情報を保持
   final PanelController _panelController = PanelController();  // パネルを制御するコントローラ
+  var isDialOpen = ValueNotifier<bool>(false);
 
   @override
   void initState() {
@@ -246,12 +247,18 @@ class DisplayMapState extends State<DisplayMap> {
         activeIcon: Icons.close,
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        spaceBetweenChildren: 10,
+        openCloseDial: isDialOpen,
         children: [
           SpeedDialChild(
-            child: const NFCButton()
+            child: const NFCButton(),
           ),
           SpeedDialChild(
-            child: const QRButton()
+            child: QRButton(
+              onSnapComplete: () {
+                isDialOpen.value = false;
+              }
+            ),
           ),
         ]
       )

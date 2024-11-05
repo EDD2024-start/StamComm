@@ -6,9 +6,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:StamComm/component/stamp_success_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class QRButton extends StatefulWidget {
-  const QRButton({super.key});
+  final VoidCallback onSnapComplete;
+
+  const QRButton({super.key, required this.onSnapComplete});
 
   @override
   State<QRButton> createState() => _QRButtonState();
@@ -20,6 +24,7 @@ class _QRButtonState extends State<QRButton> {
   String _descriptionText = ''; // 取得した説明文を保存する変数
   String _id = ''; // 取得したIDを保存する変数
   bool _checkPassed = false; // チェック結果のフラグ
+  final supabase = Supabase.instance.client;
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   bool _isProcessing = false; // 処理中かどうかのフラグ
@@ -42,7 +47,7 @@ class _QRButtonState extends State<QRButton> {
     controller.scannedDataStream.listen((scanData) {
       if (!_isProcessing) {
         _isProcessing = true;
-        _processQRCode(scanData.code);
+        _processQRCode(scanData.code).then((_) {});
       }
     });
   }
@@ -50,8 +55,7 @@ class _QRButtonState extends State<QRButton> {
   // QRコードを処理するメソッド
   Future<void> _processQRCode(String? code) async {
     if (code == null) {
-      _showErrorDialog('QRコードの読み取りに失敗しました');
-      _isProcessing = false;
+      await _showErrorDialog('QRコードの読み取りに失敗しました');
       return;
     }
 
@@ -60,7 +64,7 @@ class _QRButtonState extends State<QRButton> {
 
     try {
       // assets/data/sample_data.jsonからイベント情報を読み込む
-      final eventData = await _loadEventData();
+      final eventData = await _loadStampData();
       final event = eventData.firstWhere(
         (element) => element['id'] == id,
         orElse: () => null,
@@ -98,7 +102,7 @@ class _QRButtonState extends State<QRButton> {
           });
 
           // IDをローカルストレージに保存
-          await _saveIdToLocalStorage(id);
+          await _saveUserStamp(id);
 
           // 新しい画面に遷移してデータを表示
           Navigator.push(
@@ -113,16 +117,20 @@ class _QRButtonState extends State<QRButton> {
             ),
           );
 
+          widget.onSnapComplete(); // スナップ完了時のコールバックを実行
+
           // カメラを停止
           controller?.stopCamera();
         } else {
-          _showErrorDialog('現在位置とイベントの位置が遠すぎます');
+          await controller?.pauseCamera();
+          await _showErrorDialog('現在位置とイベントの位置が遠すぎます');
         }
       } else {
         _showErrorDialog('対応するイベントが見つかりません');
       }
     } catch (e) {
       print('Error processing QR code: $e');
+      await controller?.pauseCamera();
       _showErrorDialog('QRコードの処理中にエラーが発生しました: $e');
     } finally {
       _isProcessing = false;
@@ -130,35 +138,62 @@ class _QRButtonState extends State<QRButton> {
   }
 
   // assets/data/sample_data.jsonからイベント情報を読み込む
-  Future<List<dynamic>> _loadEventData() async {
-    String jsonString =
-        await rootBundle.loadString('assets/data/sample_data.json');
-    return json.decode(jsonString);
+  Future<List<dynamic>> _loadStampData() async {
+    final response = await supabase
+        .from('stamps') // データベーステーブル名
+        .select();
+    // データ取得成功時
+    final data = json.encode(response);
+    print("Supabase data: $data");
+    return json.decode(data);
   }
 
-  // ローカルストレージにIDを保存するメソッド
-  Future<void> _saveIdToLocalStorage(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('id', id);
-    print('ID saved to local storage: $id');
-    print(prefs.getString('id'));
+  // 取得済みスタンプとしてuser_stampsにデータを挿入するメソッド
+  Future<void> _saveUserStamp(String stampId) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        print("User is not logged in");
+        return;
+      }
+
+      final currentTime = DateTime.now().toUtc().toIso8601String();
+      final uuid = Uuid();
+      final response = await supabase.from('user_stamps').insert({
+        'id': uuid.v4(),
+        'user_id': userId,
+        'stamp_id': stampId,
+        'created_at': currentTime,
+      });
+    } catch (e) {
+      print("Error: $e");
+    }
   }
 
   // エラーダイアログを表示するメソッド
-  void _showErrorDialog(String message) {
-    showDialog(
+  Future<void> _showErrorDialog(String message) async {
+    await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('エラー'),
         content: Text(message),
-        actions: [
+        actions: <Widget>[
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              Navigator.pop(context);
+              await controller?.resumeCamera();
+              setState(() {
+                _isProcessing = false;
+              });
+            },
             child: const Text('OK'),
           ),
         ],
       ),
     );
+    setState(() {
+      _isProcessing = false;
+    });
   }
 
   // 緯度・経度から距離を計算するメソッド
