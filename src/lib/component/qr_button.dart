@@ -1,11 +1,10 @@
+// qr_button.dart
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:StamComm/component/stamp_success_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -19,15 +18,10 @@ class QRButton extends StatefulWidget {
 }
 
 class _QRButtonState extends State<QRButton> {
-  String _name = ''; // 取得した名前を保存する変数
-  String _descriptionImageUrl = ''; // 取得した画像URLを保存する変数
-  String _descriptionText = ''; // 取得した説明文を保存する変数
-  String _id = ''; // 取得したIDを保存する変数
-  bool _checkPassed = false; // チェック結果のフラグ
   final supabase = Supabase.instance.client;
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
-  bool _isProcessing = false; // 処理中かどうかのフラグ
+  bool _isProcessing = false;
 
   @override
   void reassemble() {
@@ -41,7 +35,7 @@ class _QRButtonState extends State<QRButton> {
     }
   }
 
-  // QRコードの読み取り
+  // QRスキャニングセッションを初期化
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
@@ -52,26 +46,26 @@ class _QRButtonState extends State<QRButton> {
     });
   }
 
-  // QRコードを処理するメソッド
+  // スキャンされたQRコードを処理
   Future<void> _processQRCode(String? code) async {
     if (code == null) {
       await _showErrorDialog('QRコードの読み取りに失敗しました');
       return;
     }
 
-    String id = code.trim(); // QRコードから取得したID
+    String id = code.trim();
     print('Scanned ID: $id');
 
     try {
-      // assets/data/sample_data.jsonからイベント情報を読み込む
-      final eventData = await _loadStampData();
-      final event = eventData.firstWhere(
-        (element) => element['id'] == id,
-        orElse: () => null,
-      );
+      final response = await supabase
+          .from('stamps')
+          .select()
+          .eq('id', id)
+          .single();
 
-      print('Event: $event');
-      if (event != null) {
+      if (response != null) {
+        final event = response;
+        print('Event: $event');
         double latitude = event['latitude'];
         double longitude = event['longitude'];
 
@@ -80,7 +74,7 @@ class _QRButtonState extends State<QRButton> {
           desiredAccuracy: LocationAccuracy.high,
         );
 
-        // 距離を計算（メートル単位）
+        // 距離を計算
         double distance = _calculateDistance(
           currentPosition.latitude,
           currentPosition.longitude,
@@ -93,62 +87,52 @@ class _QRButtonState extends State<QRButton> {
         bool checkPassed = distance <= 30;
 
         if (checkPassed) {
-          setState(() {
-            _id = id;
-            _name = event['name']; // イベント名を取得
-            _descriptionImageUrl = event['description_image_url']; // イメージURLを取得
-            _descriptionText = event['description_text']; // 説明文を取得
-            _checkPassed = true;
-          });
-
-          // IDをローカルストレージに保存
-          await _saveUserStamp(id);
-
-          // 新しい画面に遷移してデータを表示
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StampSuccessScreen(
-                name: _name,
-                id: _id,
-                descriptionImageUrl: _descriptionImageUrl,
-                descriptionText: _descriptionText,
-              ),
-            ),
-          );
-
-          widget.onSnapComplete(); // スナップ完了時のコールバックを実行
-
-          // カメラを停止
-          controller?.stopCamera();
+          await _handleSuccessfulScan(event, id);
         } else {
           await controller?.pauseCamera();
           await _showErrorDialog('現在位置とイベントの位置が遠すぎます');
         }
       } else {
-        _showErrorDialog('対応するイベントが見つかりません');
+        await _showErrorDialog('対応するイベントが見つかりません');
       }
     } catch (e) {
       print('Error processing QR code: $e');
       await controller?.pauseCamera();
-      _showErrorDialog('QRコードの処理中にエラーが発生しました: $e');
+      await _showErrorDialog('QRコードの処理中にエラーが発生しました: $e');
     } finally {
       _isProcessing = false;
     }
   }
 
-  // assets/data/sample_data.jsonからイベント情報を読み込む
-  Future<List<dynamic>> _loadStampData() async {
-    final response = await supabase
-        .from('stamps') // データベーステーブル名
-        .select();
-    // データ取得成功時
-    final data = json.encode(response);
-    print("Supabase data: $data");
-    return json.decode(data);
+  // スキャンが成功した際の処理
+  Future<void> _handleSuccessfulScan(Map<String, dynamic> event, String id) async {
+    // スタンプを保存
+    await _saveUserStamp(id);
+
+    // ダイアログを閉じる
+    Navigator.of(context, rootNavigator: true).pop();
+
+    // 成功画面へ遷移
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StampSuccessScreen(
+          name: event['name'],
+          id: id,
+          descriptionImageUrl: event['description_image_url'],
+          descriptionText: event['description_text'],
+        ),
+      ),
+    );
+
+    // コールバックを実行
+    widget.onSnapComplete();
+
+    // カメラを停止
+    controller?.stopCamera();
   }
 
-  // 取得済みスタンプとしてuser_stampsにデータを挿入するメソッド
+  // ユーザーのスタンプを保存
   Future<void> _saveUserStamp(String stampId) async {
     try {
       final userId = supabase.auth.currentUser?.id;
@@ -159,18 +143,18 @@ class _QRButtonState extends State<QRButton> {
 
       final currentTime = DateTime.now().toUtc().toIso8601String();
       final uuid = Uuid();
-      final response = await supabase.from('user_stamps').insert({
+      await supabase.from('user_stamps').insert({
         'id': uuid.v4(),
         'user_id': userId,
         'stamp_id': stampId,
         'created_at': currentTime,
       });
     } catch (e) {
-      print("Error: $e");
+      print("Error saving user stamp: $e");
     }
   }
 
-  // エラーダイアログを表示するメソッド
+  // エラーダイアログを表示
   Future<void> _showErrorDialog(String message) async {
     await showDialog<void>(
       context: context,
@@ -180,23 +164,17 @@ class _QRButtonState extends State<QRButton> {
         actions: <Widget>[
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.of(context, rootNavigator: true).pop();
               await controller?.resumeCamera();
-              setState(() {
-                _isProcessing = false;
-              });
             },
             child: const Text('OK'),
           ),
         ],
       ),
     );
-    setState(() {
-      _isProcessing = false;
-    });
   }
 
-  // 緯度・経度から距離を計算するメソッド
+  // 緯度・経度から距離を計算（メートル単位）
   double _calculateDistance(
       double lat1, double lon1, double lat2, double lon2) {
     const double radiusOfEarth = 6371000; // メートル
@@ -213,6 +191,7 @@ class _QRButtonState extends State<QRButton> {
     return radiusOfEarth * c;
   }
 
+  // 度をラジアンに変換
   double _degreesToRadians(double degrees) {
     return degrees * pi / 180;
   }
@@ -223,41 +202,48 @@ class _QRButtonState extends State<QRButton> {
     super.dispose();
   }
 
+  // QRスキャンセッションを開始
+  void _startQRScan() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // スキャン中にダイアログを閉じないようにする
+      builder: (context) => AlertDialog(
+        title: const Text('QRコードをスキャン'),
+        content: SizedBox(
+          width: double.infinity,
+          height: 300,
+          child: QRView(
+            key: qrKey,
+            onQRViewCreated: _onQRViewCreated,
+            overlay: QrScannerOverlayShape(
+              borderColor: Colors.blue,
+              borderRadius: 10,
+              borderLength: 30,
+              borderWidth: 10,
+              cutOutSize: 250,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              controller?.stopCamera();
+              Navigator.of(context, rootNavigator: true).pop();
+              setState(() {
+                _isProcessing = false;
+              });
+            },
+            child: const Text('キャンセル'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      onPressed: () {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('QRコードをスキャン'),
-            content: SizedBox(
-              width: double.infinity,
-              height: 300,
-              child: QRView(
-                key: qrKey,
-                onQRViewCreated: _onQRViewCreated,
-                overlay: QrScannerOverlayShape(
-                  borderColor: Colors.blue,
-                  borderRadius: 10,
-                  borderLength: 30,
-                  borderWidth: 10,
-                  cutOutSize: 250,
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  controller?.stopCamera();
-                  Navigator.pop(context);
-                },
-                child: const Text('キャンセル'),
-              ),
-            ],
-          ),
-        );
-      },
+      onPressed: _startQRScan,
       child: const Icon(Icons.qr_code),
     );
   }
