@@ -114,7 +114,8 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
-    // Supabaseからデータを���得し、StampDataのリストとして処理
+    // Supabaseからデータを取得し、StampDataのリストとして処理
+    // Supabaseからデータを取得し、StampDataのリストとして処理
     final List<StampData> stampDataList = await _loadStampsFromSupabase();
     Set<Marker> markers = {};
 
@@ -265,32 +266,70 @@ class DisplayMapState extends State<DisplayMap> {
             controller: _panelController,
             panel: selectedLocation != null
                 ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        selectedLocation!.name,
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 10),
-                      Text(selectedLocation!.descriptionText),
-                      SizedBox(height: 10),
-                      Image.network(selectedLocation!.descriptionImageUrl),
-                      SizedBox(height: 10),
-                      // 獲得済みのスタンプに関するテキストを表示
-                      if (savedEventId != null &&
-                          savedEventId == selectedLocation!.id)
-                        Text(
-                          "このスタンプは獲得済みです。",
-                          style: TextStyle(
-                              color: Colors.green, fontWeight: FontWeight.bold),
+                      // ドラッグ用のハンドル
+                      Container(
+                        margin: EdgeInsets.symmetric(vertical: 8),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
                         ),
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start, // 左寄せに戻す
+                              children: [
+                                Text(
+                                  selectedLocation!.name,
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold
+                                  ),
+                                  // textAlign を削除
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  selectedLocation!.descriptionText,
+                                  // textAlign を削除
+                                ),
+                                SizedBox(height: 10),
+                                Image.network(
+                                  selectedLocation!.descriptionImageUrl,
+                                  fit: BoxFit.contain,
+                                ),
+                                SizedBox(height: 10),
+                                if (savedEventId != null &&
+                                    savedEventId == selectedLocation!.id)
+                                  Text(
+                                    "このスタンプは獲得済みです。",
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold
+                                    ),
+                                    // textAlign を削除
+                                  ),
+                                SizedBox(height: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   )
                 : Center(child: Text("マーカーをタップしてください")),
             minHeight: 100,
-            maxHeight: 400,
-            borderRadius: BorderRadius.circular(15.0),
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(15.0)),
+            backdropEnabled: true,
+            backdropTapClosesPanel: true,
+            parallaxEnabled: true,
+            parallaxOffset: 0.5,
           ),
         ],
       ),
