@@ -1,6 +1,6 @@
-import 'package:StamComm/view/register_page.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:StamComm/component/navigate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +21,7 @@ class LoginSample extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       title: 'Login Sample',
-      home: RegisterPage(),
+      home: NavigateApp(),
     );
   }
 }

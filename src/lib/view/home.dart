@@ -1,3 +1,4 @@
+import 'package:StamComm/component/navigate.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -32,10 +33,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset(
-          'lib/images/StamComm.png', // 画像のパスを指定
-          height: 40,
-        ),
+        title: const Text('StamComm'),
         centerTitle: true, // タイトルを中央に配置
       ),
       body: data.isEmpty
@@ -51,7 +49,13 @@ class _HomePageState extends State<HomePage> {
                       height: 70,
                       child: ElevatedButton(
                         onPressed: () {
-                          // ボタンが押されたときの処理
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NavigateApp(
+                                  initialPageIndex: 1, eventId: item['id']),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
