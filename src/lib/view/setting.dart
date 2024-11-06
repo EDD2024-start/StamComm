@@ -1,19 +1,16 @@
+import 'package:StamComm/utils/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../component/display_user_profile.dart'; // DisplayUserProfileをインポート
 import '../component/user_profile_edit.dart'; // UsersEditsをインポート
 
 class SettingPage extends StatelessWidget {
   Future<Widget> _getUserProfileWidget() async {
-    User? user = FirebaseAuth.instance.currentUser;
+    final user = supabase.auth.currentUser;
     if (user != null) {
-      DocumentSnapshot userProfile = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final userProfile =
+          await supabase.from('profiles').select().eq('id', user!.id).limit(1);
 
-      if (userProfile.exists) {
+      if (userProfile != null) {
         return DisplayUserProfile();
       }
     }

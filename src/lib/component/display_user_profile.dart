@@ -1,34 +1,70 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:StamComm/models/profile.dart';
+import 'package:StamComm/utils/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'user_profile_edit.dart';
 
 class DisplayUserProfile extends StatefulWidget {
-  DisplayUserProfile({Key? key}) : super(key: key);
-
   @override
-  State<DisplayUserProfile> createState() => _UserDisplayState();
+  _DisplayUserProfileState createState() => _DisplayUserProfileState();
 }
 
-class _UserDisplayState extends State<DisplayUserProfile> {
-  late Future<Map<String, dynamic>> _userData;
+class _DisplayUserProfileState extends State<DisplayUserProfile> {
+  late final Stream<List<Profile>> stream;
+  late final String myUserId;
 
   @override
   void initState() {
     super.initState();
-    _userData = _fetchUserData();
-  }
+    myUserId = supabase.auth.currentUser!.id;
 
-  Future<Map<String, dynamic>> _fetchUserData() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      return doc.data() as Map<String, dynamic>;
-    } else {
-      throw Exception('ユーザーがログインしていません');
-    }
+    // クエリを直接実行
+    supabase.from('profiles').select().eq('id', myUserId).then((response) {
+      if (response != null) {
+        // エラーチェックを修正
+      } else {
+        if ((response as List).isEmpty) {
+          // データが見つからなかった場合の処理
+        } else {
+          for (var map in response) {
+            try {
+              Profile profile = Profile.fromMap(map: map, myUserId: myUserId);
+            } catch (e) {
+              // マップからProfileへの変換エラー処理
+            }
+          }
+        }
+      }
+    }).catchError((error) {
+      // 予期しないエラー処理
+    });
+
+    // Streamをローカル変数として保持
+    stream = supabase
+        .from('profiles')
+        .stream(primaryKey: ['id'])
+        .eq('id', myUserId)
+        .map((maps) {
+          if (maps.isEmpty) {
+            // データが見つからなかった場合の処理
+          } else {
+            // データが見つかった場合の処理
+          }
+          return maps
+              .map((map) {
+                try {
+                  return Profile.fromMap(map: map, myUserId: myUserId);
+                } catch (e) {
+                  // マップからProfileへの変換エラー処理
+                  return null;
+                }
+              })
+              .where((profile) => profile != null)
+              .cast<Profile>()
+              .toList();
+        })
+        .handleError((error) {
+          // データ取得エラー処理
+        });
   }
 
   @override
@@ -36,18 +72,31 @@ class _UserDisplayState extends State<DisplayUserProfile> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('プロフィール'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'プロフィールを編集',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => UsersEdits()),
+              );
+            },
+          ),
+        ],
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _userData,
+      body: StreamBuilder<List<Profile>>(
+        stream: stream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('エラーが発生しました: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text('ユーザー情報が見つかりません'));
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No data found'));
           } else {
-            Map<String, dynamic> data = snapshot.data!;
+            final profiles = snapshot.data!;
+            final profile = profiles.first; // 最初のプロフィールを使用
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -56,22 +105,30 @@ class _UserDisplayState extends State<DisplayUserProfile> {
                   Card(
                     child: ListTile(
                       leading: Icon(Icons.person, size: 50),
-                      title: Text('名前',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      subtitle:
-                          Text(data['name'], style: TextStyle(fontSize: 16)),
+                      title: Text(
+                        '名前',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        profile.username,
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Card(
                     child: ListTile(
                       leading: Icon(Icons.chat_bubble_outline, size: 50),
-                      title: Text('ひとこと',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      subtitle:
-                          Text(data['note'], style: TextStyle(fontSize: 16)),
+                      title: Text(
+                        'ひとこと',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        profile.userComment ?? 'コメントはありません',
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
                 ],
