@@ -8,30 +8,45 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NavigateApp extends StatelessWidget {
   static const String _title = 'Flutter Code Sample';
+  final int initialPageIndex; // 追加
+  final String? eventId; // 追加
+
+  const NavigateApp({super.key, this.initialPageIndex = 0, this.eventId}); // 変更
 
   static Route<void> route() {
     return MaterialPageRoute<void>(builder: (_) => const NavigateApp());
   }
 
-  const NavigateApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: _title,
-      home: Navigate(),
+      home:
+          Navigate(initialPageIndex: initialPageIndex, eventId: eventId), // 変更
     );
   }
 }
 
 class Navigate extends StatefulWidget {
+  final int initialPageIndex; // 追加
+  final String? eventId; // 追加
+
+  const Navigate({super.key, this.initialPageIndex = 0, this.eventId}); // 変更
+
   @override
   _NavigateState createState() => _NavigateState();
 }
 
 class _NavigateState extends State<Navigate> {
-  int pageIndex = 0;
-  String? selectedEventId; // 追加
+  late int pageIndex;
+  String? selectedEventId;
+
+  @override
+  void initState() {
+    super.initState();
+    pageIndex = widget.initialPageIndex; // 追加
+    selectedEventId = widget.eventId; // 追加
+  }
 
   final List<Widget> pages = [
     HomePage(),
@@ -49,9 +64,6 @@ class _NavigateState extends State<Navigate> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("App"),
-      ),
       body: IndexedStack(
         index: pageIndex,
         children: pages.map((page) {
