@@ -157,7 +157,6 @@ class DisplayMapState extends State<DisplayMap> {
       print("Error: response is null");
       return [];
     }
-    print("データを取得しました: $response");
      return (response as List<dynamic>)
       .map((item) => StampData.fromJson(item))
       .toList();
@@ -173,9 +172,7 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkers() async {
-    print("load開始");
     final stampDataList = await _loadStampsFromSupabase();
-    print("load完了");
     Set<Marker> markers = {};
 
     for (var location in stampDataList) {
@@ -196,14 +193,12 @@ class DisplayMapState extends State<DisplayMap> {
           _panelController.open();
         },
       );
-      print("marker added: $marker");
       markers.add(marker);
     }
 
     if (mounted) {
       setState(() {
         _markers = markers;
-        print("markers set: $_markers");
       });
     }
   }
