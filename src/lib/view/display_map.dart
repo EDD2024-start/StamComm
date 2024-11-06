@@ -111,7 +111,7 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
-    // Supabaseからデータを取得し、StampDataのリストとして処理
+    // Supabaseからデータを���得し、StampDataのリストとして処理
     final List<StampData> stampDataList = await _loadStampsFromSupabase();
     Set<Marker> markers = {};
 

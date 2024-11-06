@@ -3,6 +3,8 @@ import 'package:StamComm/view/home.dart';
 import 'package:StamComm/view/display_map.dart';
 import 'package:StamComm/view/search.dart';
 import 'package:StamComm/view/setting.dart';
+import 'package:StamComm/view/register_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NavigateApp extends StatelessWidget {
   static const String _title = 'Flutter Code Sample';
@@ -40,6 +42,12 @@ class _NavigateState extends State<Navigate> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      // ログインしていない場合はRegisterPageに遷移
+      return const RegisterPage();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("App"),
