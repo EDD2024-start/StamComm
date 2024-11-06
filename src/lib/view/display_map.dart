@@ -1,4 +1,4 @@
-import 'dart:convert'; 
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,26 +8,28 @@ import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
-import 'package:StamComm/models/stamp_data.dart'; 
+import 'package:StamComm/models/stamp_data.dart';
 import 'package:StamComm/models/user_stamps_data.dart';
 
 import 'package:StamComm/component/nfc_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DisplayMap extends StatefulWidget {
-  const DisplayMap({super.key});
+  final String? eventId; // 追加
+  const DisplayMap({super.key, this.eventId}); // 変更
   @override
   DisplayMapState createState() => DisplayMapState();
 }
 
 class DisplayMapState extends State<DisplayMap> {
-  CameraPosition _initialLocation = const CameraPosition(target: LatLng(36.3845, 138.2736));  // 初期位置
+  CameraPosition _initialLocation =
+      const CameraPosition(target: LatLng(36.3845, 138.2736)); // 初期位置
   final supabase = Supabase.instance.client;
   late GoogleMapController mapController;
   Set<Marker> _markers = {};
   String? savedEventId;
-  StampData? selectedLocation;  // タップされたマーカーの情報を保持
-  final PanelController _panelController = PanelController();  // パネルを制御するコントローラ
+  StampData? selectedLocation; // タップされたマーカーの情報を保持
+  final PanelController _panelController = PanelController(); // パネルを制御するコントローラ
 
   @override
   void initState() {
@@ -35,7 +37,6 @@ class DisplayMapState extends State<DisplayMap> {
     _initializeMapRenderer();
     _loadSavedEventIds(); // SharedPreferencesからのID読み込み
   }
-
 
   Future<void> _loadSavedEventIds() async {
     try {
@@ -49,14 +50,17 @@ class DisplayMapState extends State<DisplayMap> {
           .from('user_stamps')
           .select('stamp_id')
           .eq('user_id', userId);
-      
-      if(response != null && response.isNotEmpty){
-        final stampIds = response.map((row)=> row['stamp_id'] as String).toList();
+
+      if (response != null && response.isNotEmpty) {
+        final stampIds =
+            response.map((row) => row['stamp_id'] as String).toList();
 
         setState(() {
-          savedEventId = stampIds.contains(selectedLocation?.id) ? selectedLocation?.id : null;
+          savedEventId = stampIds.contains(selectedLocation?.id)
+              ? selectedLocation?.id
+              : null;
         });
-      }else{
+      } else {
         print("No matching data found");
       }
 
@@ -66,9 +70,9 @@ class DisplayMapState extends State<DisplayMap> {
     }
   }
 
-
   void _initializeMapRenderer() {
-    final GoogleMapsFlutterPlatform mapsImplementation = GoogleMapsFlutterPlatform.instance;
+    final GoogleMapsFlutterPlatform mapsImplementation =
+        GoogleMapsFlutterPlatform.instance;
     if (mapsImplementation is GoogleMapsFlutterAndroid) {
       mapsImplementation.useAndroidViewSurface = true;
     }
@@ -113,7 +117,8 @@ class DisplayMapState extends State<DisplayMap> {
 
     for (var location in stampDataList) {
       // 範囲内にあるかどうかを確認
-      if (_isLocationInBounds(LatLng(location.latitude, location.longitude), bounds)) {
+      if (_isLocationInBounds(
+          LatLng(location.latitude, location.longitude), bounds)) {
         final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
         final marker = Marker(
           markerId: MarkerId(location.id),
@@ -125,10 +130,10 @@ class DisplayMapState extends State<DisplayMap> {
           ),
           onTap: () {
             setState(() {
-              selectedLocation = location;  // タップされたマーカーの情報をセット
+              selectedLocation = location; // タップされたマーカーの情報をセット
             });
             _loadSavedEventIds();
-            _panelController.open();  // パネルを開く
+            _panelController.open(); // パネルを開く
           },
         );
         markers.add(marker);
@@ -143,23 +148,34 @@ class DisplayMapState extends State<DisplayMap> {
     }
   }
 
-
   bool _isLocationInBounds(LatLng location, LatLngBounds bounds) {
     return bounds.contains(location);
   }
 
   Future<List<StampData>> _loadStampsFromSupabase() async {
-    final response = await supabase
-        .from('stamps') // データベーステーブル名
-        .select();
-    // データ取得成功時
-    if (response == "null") {
-      print("Error: response is null");
+    try {
+      var query = supabase.from('stamps').select(); // 基本クエリ
+
+      // eventIdが指定されている場合はフィルタリング
+      if (widget.eventId != null) {
+        query = query.eq('event_id', widget.eventId!);
+      }
+
+      final response = await query;
+
+      // responseがnullまたは空の場合
+      if (response == null || response.isEmpty) {
+        print("データが見つかりませんでした");
+        return [];
+      }
+
+      return (response as List<dynamic>)
+          .map((item) => StampData.fromJson(item))
+          .toList();
+    } catch (e) {
+      print("エラーが発生しました: $e");
       return [];
     }
-     return (response as List<dynamic>)
-      .map((item) => StampData.fromJson(item))
-      .toList();
   }
 
   Future<BitmapDescriptor> _getMarkerIcon(String url) async {
@@ -250,7 +266,8 @@ class DisplayMapState extends State<DisplayMap> {
                     children: [
                       Text(
                         selectedLocation!.name,
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 10),
                       Text(selectedLocation!.descriptionText),
@@ -258,10 +275,12 @@ class DisplayMapState extends State<DisplayMap> {
                       Image.network(selectedLocation!.descriptionImageUrl),
                       SizedBox(height: 10),
                       // 獲得済みのスタンプに関するテキストを表示
-                      if ( savedEventId != null && savedEventId == selectedLocation!.id)
+                      if (savedEventId != null &&
+                          savedEventId == selectedLocation!.id)
                         Text(
                           "このスタンプは獲得済みです。",
-                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.green, fontWeight: FontWeight.bold),
                         ),
                     ],
                   )

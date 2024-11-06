@@ -29,10 +29,11 @@ class Navigate extends StatefulWidget {
 
 class _NavigateState extends State<Navigate> {
   int pageIndex = 0;
+  String? selectedEventId; // 追加
 
   final List<Widget> pages = [
     HomePage(),
-    DisplayMap(),
+    DisplayMap(), // 変更
     SearchPage(),
     SettingPage()
   ];
@@ -45,7 +46,12 @@ class _NavigateState extends State<Navigate> {
       ),
       body: IndexedStack(
         index: pageIndex,
-        children: pages,
+        children: pages.map((page) {
+          if (page is DisplayMap) {
+            return DisplayMap(eventId: selectedEventId); // 変更
+          }
+          return page;
+        }).toList(),
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -54,6 +60,9 @@ class _NavigateState extends State<Navigate> {
         onTap: (index) {
           setState(() {
             pageIndex = index;
+            if (index == 1) {
+              selectedEventId = null; // マップを選択した場合はeventIdをリセット
+            }
           });
         },
         items: const [

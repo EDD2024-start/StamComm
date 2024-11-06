@@ -1,3 +1,4 @@
+import 'package:StamComm/view/display_map.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -51,7 +52,12 @@ class _HomePageState extends State<HomePage> {
                       height: 70,
                       child: ElevatedButton(
                         onPressed: () {
-                          // ボタンが押されたときの処理
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DisplayMap(eventId: item['id']),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
