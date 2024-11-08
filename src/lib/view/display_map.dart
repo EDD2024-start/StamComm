@@ -114,37 +114,36 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
-    // Supabaseからデータを取得し、StampDataのリストとして処理
-    // Supabaseからデータを取得し、StampDataのリストとして処理
     final List<StampData> stampDataList = await _loadStampsFromSupabase();
+    final List<UserStampsData> userStampsList = await _loadUserStampsFromSupabase();
     Set<Marker> markers = {};
 
     for (var location in stampDataList) {
-      // 範囲内にあるかどうかを確認
       if (_isLocationInBounds(
           LatLng(location.latitude, location.longitude), bounds)) {
         final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
+        final isObtained = userStampsList.any((stamp) => stamp.stampId == location.id);
+        final markerColor = isObtained ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed;
         final marker = Marker(
           markerId: MarkerId(location.id),
           position: LatLng(location.latitude, location.longitude),
-          icon: markerIcon,
+          icon: BitmapDescriptor.defaultMarkerWithHue(markerColor),
           infoWindow: InfoWindow(
             title: location.name,
             snippet: location.descriptionText,
           ),
           onTap: () {
             setState(() {
-              selectedLocation = location; // タップされたマーカーの情報をセット
+              selectedLocation = location;
             });
             _loadSavedEventIds();
-            _panelController.open(); // パネルを開く
+            _panelController.open();
           },
         );
         markers.add(marker);
       }
     }
 
-    // マーカーを表示
     if (mounted) {
       setState(() {
         _markers = markers;
@@ -158,16 +157,14 @@ class DisplayMapState extends State<DisplayMap> {
 
   Future<List<StampData>> _loadStampsFromSupabase() async {
     try {
-      var query = supabase.from('stamps').select(); // 基本クエリ
+      var query = supabase.from('stamps').select();
 
-      // eventIdが指定されている場合はフィルタリング
       if (widget.eventId != null) {
         query = query.eq('event_id', widget.eventId!);
       }
 
       final response = await query;
 
-      // responseがnullまたは空の場合
       if (response == null || response.isEmpty) {
         print("データが見つかりませんでした");
         return [];
@@ -182,25 +179,53 @@ class DisplayMapState extends State<DisplayMap> {
     }
   }
 
+  Future<List<UserStampsData>> _loadUserStampsFromSupabase() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        print("user is not signed in");
+        return [];
+      }
+
+      final response = await supabase
+          .from('user_stamps')
+          .select()
+          .eq('user_id', userId);
+
+      if (response == null || response.isEmpty) {
+        print("データが見つかりませんでした");
+        return [];
+      }
+
+      return (response as List<dynamic>)
+          .map((item) => UserStampsData.fromJson(item))
+          .toList();
+    } catch (e) {
+      print("エラーが発生しました: $e");
+      return [];
+    }
+  }
+
   Future<BitmapDescriptor> _getMarkerIcon(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
-      // カスタムマーカーの処理（例：画像データをカスタマイズ）
-      // 将来拡張可能な部分
     }
     return BitmapDescriptor.defaultMarker;
   }
 
   Future<void> _loadMarkers() async {
     final stampDataList = await _loadStampsFromSupabase();
+    final userStampsList = await _loadUserStampsFromSupabase();
     Set<Marker> markers = {};
 
     for (var location in stampDataList) {
       final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
+      final isObtained = userStampsList.any((stamp) => stamp.stampId == location.id);
+      final markerColor = isObtained ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed;
       final marker = Marker(
         markerId: MarkerId(location.id),
         position: LatLng(location.latitude, location.longitude),
-        icon: markerIcon,
+        icon: BitmapDescriptor.defaultMarkerWithHue(markerColor),
         infoWindow: InfoWindow(
           title: location.name,
           snippet: location.descriptionText,
@@ -267,7 +292,6 @@ class DisplayMapState extends State<DisplayMap> {
             panel: selectedLocation != null
                 ? Column(
                     children: [
-                      // ドラッグ用のハンドル
                       Container(
                         margin: EdgeInsets.symmetric(vertical: 8),
                         width: 40,
@@ -283,7 +307,7 @@ class DisplayMapState extends State<DisplayMap> {
                           child: Padding(
                             padding: EdgeInsets.all(16),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start, // 左寄せに戻す
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   selectedLocation!.name,
@@ -291,12 +315,10 @@ class DisplayMapState extends State<DisplayMap> {
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold
                                   ),
-                                  // textAlign を削除
                                 ),
                                 SizedBox(height: 10),
                                 Text(
                                   selectedLocation!.descriptionText,
-                                  // textAlign を削除
                                 ),
                                 SizedBox(height: 10),
                                 Image.network(
@@ -312,7 +334,6 @@ class DisplayMapState extends State<DisplayMap> {
                                       color: Colors.green,
                                       fontWeight: FontWeight.bold
                                     ),
-                                    // textAlign を削除
                                   ),
                                 SizedBox(height: 20),
                               ],
