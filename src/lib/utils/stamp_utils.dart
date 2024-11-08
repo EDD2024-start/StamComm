@@ -100,10 +100,14 @@ Future<void> handleSuccessfulScan(
     File file = File(photo.path);
     bool uploadSuccess = false;
     try {
-      await supabase.storage
-          .from('user_stamp_images')
-          .upload(fileName, file); // ストレージにアップロード
-      uploadSuccess = await saveUserStamp(id, fileName); // ファイル��を保存
+      if (supabase.auth.currentUser != null) {
+        await supabase.storage.from('user_stamp_images').upload(
+            "${supabase.auth.currentUser!.id}/$fileName", file); // ストレージにアップロード
+        uploadSuccess = await saveUserStamp(id, fileName); // ファイル名を保存
+      } else {
+        print("User is not logged in");
+        uploadSuccess = false;
+      }
     } catch (e) {
       print('Error uploading image: $e');
     }
@@ -111,37 +115,54 @@ Future<void> handleSuccessfulScan(
     if (uploadSuccess) {
       // 保存成功時に成功画面へ遷移
       Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StampSuccessScreen(
-        name: event['name'],
-        id: id,
-        descriptionImageUrl: event['description_image_url'],
-        descriptionText: event['description_text'],
+        context,
+        MaterialPageRoute(
+          builder: (context) {
+            if (event['name'] == null ||
+                event['description_image_url'] == null ||
+                event['description_text'] == null) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('エラー'),
+                ),
+                body: Center(
+                  child: Text('イベント情報が不完全です。'),
+                ),
+              );
+            } else {
+              return StampSuccessScreen(
+                name: event['name'] ?? '名前がありません',
+                id: id,
+                descriptionImageUrl: event['description_image_url'] ?? '',
+                descriptionText: event['description_text'] ?? '説明がありません',
+              );
+            }
+          },
         ),
-      ),
       );
     } else {
       // 保存失敗時にマップ画面へ遷移
       Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DisplayMap(),
-      ),
+        context,
+        MaterialPageRoute(
+          builder: (context) => DisplayMap(),
+        ),
       );
     }
-    } else {
+  } else {
     // 写真撮影がキャンセルされた場合
     Navigator.push(
       context,
       MaterialPageRoute(
-      builder: (context) => DisplayMap(),
+        builder: (context) => DisplayMap(),
       ),
     );
-    }
+  }
 
   // コールバックを実行
   if (onSnapComplete != null) {
     onSnapComplete();
+  } else {
+    print("onSnapComplete is null");
   }
 }
