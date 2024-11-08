@@ -107,13 +107,18 @@ Future<Map<String, dynamic>?> fetchStampInfo(String id) async {
   }
 }
 
+enum StampSaveError {
+  duplicate,
+  other
+}
+
 // ユーザーのスタンプを保存
-Future<bool> saveUserStamp(String stampId, String imageUrl) async {
+Future<StampSaveError?> saveUserStamp(String stampId, String imageUrl) async {
   try {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
       print("User is not logged in");
-      return false;
+      return StampSaveError.other;
     }
 
     final currentTime = DateTime.now().toUtc().toIso8601String();
@@ -125,13 +130,17 @@ Future<bool> saveUserStamp(String stampId, String imageUrl) async {
       'image_url': imageUrl, // パブリックURLを保存
       'created_at': currentTime,
     });
-    return true;
+    return null;  // 成功時はnull
+  } on PostgrestException catch (e) {
+    if (e.code == "23505") { // 重複エラーのコード
+      print("Duplicate stamp error: $e");
+      return StampSaveError.duplicate;
+    }
+    print("Error saving user stamp: $e");
+    return StampSaveError.other;
   } catch (e) {
     print("Error saving user stamp: $e");
-    if (e is StorageException && e.statusCode == 403) {
-      print("RLSポリシーに違反しています。Supabaseの設定を確認してください。");
-    }
-    return false;
+    return StampSaveError.other;
   }
 }
 
@@ -187,7 +196,35 @@ Future<void> handleSuccessfulScan(
 
         // パブリックURLを保存
         if (publicUrl != null) {
-          uploadSuccess = await saveUserStamp(id, publicUrl);
+          final error = await saveUserStamp(id, publicUrl);
+          uploadSuccess = error == null;
+          
+          if (error == StampSaveError.duplicate) {
+            if (context.mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  title: const Text('取得済みのスタンプ'),
+                  content: const Text('このスタンプは既に取得済みです。'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context)
+                          ..pop() // ダイアログを閉じる
+                          ..pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (context) => DisplayMap()),
+                            (route) => false,
+                          );
+                      },
+                      child: const Text('マップに戻る'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return;  // 重複エラーの場合はここで処理を終了
+          }
         }
       } else {
         print("User is not logged in");
@@ -224,18 +261,31 @@ Future<void> handleSuccessfulScan(
                 id: id,
                 descriptionImageUrl: event['description_image_url'] ?? '',
                 descriptionText: event['description_text'] ?? '説明がありません',
-                userPhotoUrl: publicUrl ?? '', // ユーザーが撮影した写真のURLを渡す
+                userPhotoUrl: publicUrl ?? '', // ユーザーが��影した写真のURLを渡す
               );
             }
           },
         ),
       );
     } else {
-      // 保存失敗時にマップ画面へ遷移
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DisplayMap(),
+      // エラーメッセージを表示してからマップ画面へ遷移
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('エラー'),
+          content: const Text('このスタンプは既に取得済みです。'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => DisplayMap()),
+                );
+              },
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
     }
