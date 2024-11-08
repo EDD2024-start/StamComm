@@ -1,12 +1,11 @@
 // qr_button.dart
-import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:StamComm/component/stamp_success_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
+import 'package:StamComm/utils/stamp_utils.dart';
 
 class QRButton extends StatefulWidget {
   final VoidCallback onSnapComplete;
@@ -57,14 +56,9 @@ class _QRButtonState extends State<QRButton> {
     print('Scanned ID: $id');
 
     try {
-      final response = await supabase
-          .from('stamps')
-          .select()
-          .eq('id', id)
-          .single();
+      final event = await fetchStampInfo(id);
 
-      if (response != null) {
-        final event = response;
+      if (event != null) {
         print('Event: $event');
         double latitude = event['latitude'];
         double longitude = event['longitude'];
@@ -75,7 +69,7 @@ class _QRButtonState extends State<QRButton> {
         );
 
         // 距離を計算
-        double distance = _calculateDistance(
+        double distance = calculateDistance(
           currentPosition.latitude,
           currentPosition.longitude,
           latitude,
@@ -106,52 +100,7 @@ class _QRButtonState extends State<QRButton> {
 
   // スキャンが成功した際の処理
   Future<void> _handleSuccessfulScan(Map<String, dynamic> event, String id) async {
-    // スタンプを保存
-    await _saveUserStamp(id);
-
-    // ダイアログを閉じる
-    Navigator.of(context, rootNavigator: true).pop();
-
-    // 成功画面へ遷移
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StampSuccessScreen(
-          name: event['name'],
-          id: id,
-          descriptionImageUrl: event['description_image_url'],
-          descriptionText: event['description_text'],
-        ),
-      ),
-    );
-
-    // コールバックを実行
-    widget.onSnapComplete();
-
-    // カメラを停止
-    controller?.stopCamera();
-  }
-
-  // ユーザーのスタンプを保存
-  Future<void> _saveUserStamp(String stampId) async {
-    try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        print("User is not logged in");
-        return;
-      }
-
-      final currentTime = DateTime.now().toUtc().toIso8601String();
-      final uuid = Uuid();
-      await supabase.from('user_stamps').insert({
-        'id': uuid.v4(),
-        'user_id': userId,
-        'stamp_id': stampId,
-        'created_at': currentTime,
-      });
-    } catch (e) {
-      print("Error saving user stamp: $e");
-    }
+    await handleSuccessfulScan(context, event, id, onSnapComplete: widget.onSnapComplete);
   }
 
   // エラーダイアログを表示

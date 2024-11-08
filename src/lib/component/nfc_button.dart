@@ -4,11 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:StamComm/component/stamp_success_screen.dart';
-import 'dart:math';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
-
+import 'package:StamComm/utils/stamp_utils.dart';
 
 class NFCButton extends StatefulWidget {
   const NFCButton({super.key});
@@ -60,19 +57,14 @@ class _NFCButtonState extends State<NFCButton> {
           }
 
           // Supabaseから該当のIDのデータを取得
-          final response = await supabase
-              .from('stamps')
-              .select()
-              .eq('id', id)
-              .single();  // 単一レコードを取得
+          final event = await fetchStampInfo(id);
 
-          if (response == null) {
+          if (event == null) {
             _showErrorDialog('対応するイベントが見つかりません');
             return;
           }
 
           // 取得したイベントデータを保存
-          final event = response;
           final latitude = event['latitude'];
           final longitude = event['longitude'];
 
@@ -80,7 +72,7 @@ class _NFCButtonState extends State<NFCButton> {
             desiredAccuracy: LocationAccuracy.high,
           );
 
-          double distance = _calculateDistance(
+          double distance = calculateDistance(
             currentPosition.latitude,
             currentPosition.longitude,
             latitude,
@@ -98,23 +90,12 @@ class _NFCButtonState extends State<NFCButton> {
               _checkPassed = true;
             });
 
-            await _saveUserStamp(id);
-
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => StampSuccessScreen(
-                  name: _name,
-                  id: _id,
-                  descriptionImageUrl: _descriptionImageUrl,
-                  descriptionText: _descriptionText,
-                ),
-              ),
-            );
+            await handleSuccessfulScan(context, event, id);
           } else {
             _showErrorDialog('現在位置とイベントの位置が遠すぎます');
           }
         } catch (e) {
+          if (!mounted) return; // ウィジェットがアンマウントされている場合は処理を中断
           _showErrorDialog('Error reading NFC: $e');
         } finally {
           NfcManager.instance.stopSession();
@@ -133,28 +114,6 @@ class _NFCButtonState extends State<NFCButton> {
     return json.decode(data);
   }
 
-  // 取得済みスタンプとしてuser_stampsにデータを挿入するメソッド
-  Future<void> _saveUserStamp(String stampId) async {
-    try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        print("User is not logged in");
-        return;
-      }
-
-      final currentTime = DateTime.now().toUtc().toIso8601String();
-      final uuid = Uuid();
-      await supabase.from('user_stamps').insert({
-        'id': uuid.v4(),
-        'user_id': userId,
-        'stamp_id': stampId,
-        'created_at': currentTime,
-      });
-    } catch (e) {
-      print("Error: $e");
-    }
-  }
-
   // エラーダイアログを表示するメソッド
   void _showErrorDialog(String message) {
     showDialog(
@@ -170,25 +129,6 @@ class _NFCButtonState extends State<NFCButton> {
         ],
       ),
     );
-  }
-
-  // 緯度・経度から距離を計算するメソッド
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    const double radiusOfEarth = 6371000;
-    double dLat = _degreesToRadians(lat2 - lat1);
-    double dLon = _degreesToRadians(lon2 - lon1);
-
-    double a = 
-        sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(lat1)) * cos(_degreesToRadians(lat2)) *
-        sin(dLon / 2) * sin(dLon / 2);
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return radiusOfEarth * c;
-  }
-
-  double _degreesToRadians(double degrees) {
-    return degrees * pi / 180;
   }
 
   @override
