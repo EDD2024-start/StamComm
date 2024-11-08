@@ -18,7 +18,6 @@ class StampData {
   });
 
   factory StampData.fromJson(Map<String, dynamic> json) {
-    print('StampData.fromJson_____: $json');
     return StampData(
       id: json['id'],
       latitude: json['latitude'],

@@ -6,7 +6,7 @@ import 'package:StamComm/utils/stamp_utils.dart';
 
 class NFCButton extends StatefulWidget {
   final VoidCallback? onSnapComplete;
-  
+
   const NFCButton({super.key, this.onSnapComplete});
   @override
   State<NFCButton> createState() => _NFCButtonState();
@@ -27,7 +27,7 @@ class _NFCButtonState extends State<NFCButton> {
   // NFCの読み取り
   Future<void> readNfc() async {
     if (_isProcessing || !mounted) return;
-    
+
     final bool isNfcAvailable = await NfcManager.instance.isAvailable();
     if (!isNfcAvailable) {
       if (mounted) _showErrorDialog('NFCはこのデバイスで利用できません');
@@ -37,7 +37,7 @@ class _NFCButtonState extends State<NFCButton> {
     if (mounted) {
       setState(() => _isProcessing = true);
     }
-    
+
     // NFCスキャンダイアログを表示
     if (mounted) {
       showDialog(
@@ -56,7 +56,7 @@ class _NFCButtonState extends State<NFCButton> {
         ),
       );
     }
-    
+
     _isSessionActive = true;
     NfcManager.instance.startSession(
       onDiscovered: (NfcTag tag) async {
@@ -69,7 +69,7 @@ class _NFCButtonState extends State<NFCButton> {
 
           NdefMessage message = await ndef.read();
           String? id = _extractIdFromNdefMessage(message);
-          
+
           if (id == null) {
             if (mounted) _showErrorDialog('有効なIDが見つかりません');
             return;
@@ -81,16 +81,17 @@ class _NFCButtonState extends State<NFCButton> {
             return;
           }
 
-          bool locationValid = await validateLocation(event['latitude'], event['longitude']);
+          bool locationValid =
+              await validateLocation(event['latitude'], event['longitude']);
           if (!locationValid) {
             if (mounted) _showErrorDialog('現在位置とイベントの位置が遠すぎます');
             return;
           }
 
           if (mounted) {
-            await handleSuccessfulScan(context, event, id, onSnapComplete: widget.onSnapComplete);
+            await handleSuccessfulScan(context, event, id,
+                onSnapComplete: widget.onSnapComplete);
           }
-
         } catch (e) {
           if (mounted) _showErrorDialog('エラーが発生しました: $e');
         } finally {
