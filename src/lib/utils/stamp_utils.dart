@@ -13,7 +13,6 @@ double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
   const double radiusOfEarth = 6371000;
   double dLat = _degreesToRadians(lat2 - lat1);
   double dLon = _degreesToRadians(lon2 - lon1);
-
   double a = sin(dLat / 2) * sin(dLat / 2) +
       cos(_degreesToRadians(lat1)) *
           cos(_degreesToRadians(lat2)) *
@@ -60,17 +59,16 @@ Future<bool> saveUserStamp(String stampId, String imageUrl) async {
       'id': uuid.v4(),
       'user_id': userId,
       'stamp_id': stampId,
-      'image_url': imageUrl, // 追加: 撮影した写真のファイル名を設定
+      'image_url': imageUrl, // パブリックURLを保存
       'created_at': currentTime,
     });
-    return true; // 保存成功
+    return true;
   } catch (e) {
     print("Error saving user stamp: $e");
-    // RLSポリシー関連のエラーの場合の対処を追加
     if (e is StorageException && e.statusCode == 403) {
       print("RLSポリシーに違反しています。Supabaseの設定を確認してください。");
     }
-    return false; // 保存失敗
+    return false;
   }
 }
 
@@ -112,12 +110,22 @@ Future<void> handleSuccessfulScan(
 
     File file = File(photo.path);
     bool uploadSuccess = false;
+    String? publicUrl;
+
     try {
       if (supabase.auth.currentUser != null) {
-        await supabase.storage.from('user_stamp_images').upload(
-            "${supabase.auth.currentUser!.id}/$fileName",
-            file); // ストレージにアップロ���ド
-        uploadSuccess = await saveUserStamp(id, fileName); // ファイル名を保存
+        final filePath = "${supabase.auth.currentUser!.id}/$fileName";
+        // ストレージにアップロード
+        await supabase.storage.from('user_stamp_images').upload(filePath, file);
+
+        // パブリックURLを取得 - 修正部分
+        publicUrl =
+            supabase.storage.from('user_stamp_images').getPublicUrl(filePath);
+
+        // パブリックURLを保存
+        if (publicUrl != null) {
+          uploadSuccess = await saveUserStamp(id, publicUrl);
+        }
       } else {
         print("User is not logged in");
         uploadSuccess = false;
@@ -132,7 +140,6 @@ Future<void> handleSuccessfulScan(
     }
 
     if (uploadSuccess) {
-      // 保存成功時に成功画面へ遷移
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -144,7 +151,7 @@ Future<void> handleSuccessfulScan(
                 appBar: AppBar(
                   title: const Text('エラー'),
                 ),
-                body: Center(
+                body: const Center(
                   child: Text('イベント情報が不完全です。'),
                 ),
               );
@@ -154,6 +161,7 @@ Future<void> handleSuccessfulScan(
                 id: id,
                 descriptionImageUrl: event['description_image_url'] ?? '',
                 descriptionText: event['description_text'] ?? '説明がありません',
+                userPhotoUrl: publicUrl ?? '', // ユーザーが撮影した写真のURLを渡す
               );
             }
           },
