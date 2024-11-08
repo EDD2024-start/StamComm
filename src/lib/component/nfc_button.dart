@@ -150,7 +150,25 @@ class _NFCButtonState extends State<NFCButton> {
         'stamp_id': stampId,
         'created_at': currentTime,
       });
-    } catch (e) {
+    } on PostgrestException catch (error) {
+      if (error.code == "23505") { // "23505" は重複エラーのコード
+        print("このスタンプは取得済みです。");
+        // Flutterウィジェット上でメッセージを表示する
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text("重複エラー"),
+            content: Text("このスタンプは取得済みです。"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
+      }
+    }catch (e) {
       print("Error: $e");
     }
   }
