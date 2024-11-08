@@ -99,8 +99,10 @@ class _QRButtonState extends State<QRButton> {
   }
 
   // スキャンが成功した際の処理
-  Future<void> _handleSuccessfulScan(Map<String, dynamic> event, String id) async {
-    await handleSuccessfulScan(context, event, id, onSnapComplete: widget.onSnapComplete);
+  Future<void> _handleSuccessfulScan(
+      Map<String, dynamic> event, String id) async {
+    await handleSuccessfulScan(context, event, id,
+        onSnapComplete: widget.onSnapComplete);
   }
 
   // エラーダイアログを表示

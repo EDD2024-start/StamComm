@@ -78,21 +78,34 @@ Future<bool> saveUserStamp(String stampId, String imageUrl) async {
 Future<void> handleSuccessfulScan(
     BuildContext context, Map<String, dynamic> event, String id,
     {VoidCallback? onSnapComplete}) async {
-  // カメラを開く前にアニメーションを表示
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => Center(
-      child: CircularProgressIndicator(),
-    ),
-  );
+  try {
+    // QRスキャンダイアログを閉じる
+    Navigator.of(context, rootNavigator: true).pop();
 
-  // カメラを開いて写真を撮影
-  final ImagePicker picker = ImagePicker();
-  final XFile? photo = await picker.pickImage(source: ImageSource.camera);
-  Navigator.of(context).pop(); // アニメーションダイアログを閉じる
+    // カメラを直接開く
+    final ImagePicker picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
 
-  if (photo != null) {
+    if (photo == null) {
+      // 写真撮影がキャンセルされた場合
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => DisplayMap()),
+        (route) => false,
+      );
+      return;
+    }
+
+    // 写真撮影後にローディングダイアログを表示
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     // 撮影した写真のファイル名を取得
     String fileName = photo.path.split('/').last;
     print('写真が撮影されました: ${photo.path}');
@@ -102,7 +115,8 @@ Future<void> handleSuccessfulScan(
     try {
       if (supabase.auth.currentUser != null) {
         await supabase.storage.from('user_stamp_images').upload(
-            "${supabase.auth.currentUser!.id}/$fileName", file); // ストレージにアップロード
+            "${supabase.auth.currentUser!.id}/$fileName",
+            file); // ストレージにアップロ���ド
         uploadSuccess = await saveUserStamp(id, fileName); // ファイル名を保存
       } else {
         print("User is not logged in");
@@ -110,6 +124,11 @@ Future<void> handleSuccessfulScan(
       }
     } catch (e) {
       print('Error uploading image: $e');
+    }
+
+    // ローディングダイアログを閉じる
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
     }
 
     if (uploadSuccess) {
@@ -149,20 +168,9 @@ Future<void> handleSuccessfulScan(
         ),
       );
     }
-  } else {
-    // 写真撮影がキャンセルされた場合
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DisplayMap(),
-      ),
-    );
-  }
 
-  // コールバックを実行
-  if (onSnapComplete != null) {
-    onSnapComplete();
-  } else {
-    print("onSnapComplete is null");
+    onSnapComplete?.call();
+  } catch (e) {
+    print("Error during scan handling: $e");
   }
 }
