@@ -125,23 +125,23 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<void> _loadMarkersForBounds(LatLngBounds bounds) async {
-    // Supabaseからデータを取得し、StampDataのリストとして処理
-    // Supabaseからデータを取得し、StampDataのリストとして処理
-    final List<StampData> stampDataList = await _loadStampsFromSupabase();
+    final stampDataList = await _loadStampsFromSupabase();
     Set<Marker> markers = {};
 
     for (var location in stampDataList) {
-      // 範囲内にあるかどうかを確認
-      if (_isLocationInBounds(
-          LatLng(location.latitude, location.longitude), bounds)) {
-        final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
+      if (_isLocationInBounds(LatLng(location.latitude, location.longitude), bounds)) {
+        final isCollected = await _isStampCollected(location.id);
+        final markerIcon = isCollected
+            ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)  // 取得済みは緑色
+            : BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);   // 未取得は赤色
+
         final marker = Marker(
           markerId: MarkerId(location.id),
           position: LatLng(location.latitude, location.longitude),
           icon: markerIcon,
           infoWindow: InfoWindow(
             title: location.name,
-            snippet: location.descriptionText,
+            snippet: isCollected ? "取得済み" : "未取得",
           ),
           onTap: () {
             setState(() {
@@ -194,12 +194,11 @@ class DisplayMapState extends State<DisplayMap> {
   }
 
   Future<BitmapDescriptor> _getMarkerIcon(String url) async {
+    // 将来的に画像カスタマイズが必要な場合のために response は残しておく
     final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      // カスタムマーカーの処理（例：画像データをカスタマイズ）
-      // 将来拡張可能な部分
-    }
-    return BitmapDescriptor.defaultMarker;
+    return BitmapDescriptor.defaultMarkerWithHue(
+      BitmapDescriptor.hueRed // デフォルトの赤色
+    );
   }
 
   Future<void> _loadMarkers() async {
@@ -207,7 +206,11 @@ class DisplayMapState extends State<DisplayMap> {
     Set<Marker> markers = {};
 
     for (var location in stampDataList) {
-      final markerIcon = await _getMarkerIcon(location.descriptionImageUrl);
+      final isCollected = await _isStampCollected(location.id);
+      final markerIcon = isCollected
+          ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)  // 取得済みは緑色
+          : BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);   // 未取得は赤色
+
       final marker = Marker(
         markerId: MarkerId(location.id),
         position: LatLng(location.latitude, location.longitude),
@@ -231,6 +234,20 @@ class DisplayMapState extends State<DisplayMap> {
         _markers = markers;
       });
     }
+  }
+
+  Future<bool> _isStampCollected(String stampId) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return false;
+
+    final response = await supabase
+        .from('user_stamps')
+        .select()
+        .eq('user_id', userId)
+        .eq('stamp_id', stampId)
+        .maybeSingle();
+
+    return response != null;
   }
 
   void _getCurrentLocation() async {
