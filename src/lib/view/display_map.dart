@@ -203,7 +203,6 @@ class DisplayMapState extends State<DisplayMap> {
         icon: markerIcon,
         infoWindow: InfoWindow(
           title: location.name,
-          snippet: location.descriptionText,
         ),
         onTap: () {
           setState(() {
