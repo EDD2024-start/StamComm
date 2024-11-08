@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:geolocator/geolocator.dart'; // 追加
 import 'package:StamComm/component/stamp_success_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:StamComm/view/display_map.dart';
@@ -30,6 +31,68 @@ double _degreesToRadians(double degrees) {
 // 度をラジアンに変換
 double degreesToRadians(double degrees) {
   return degrees * pi / 180;
+}
+
+// 位置情報の許可を確認し、必要に応じて要求する関数を追加
+Future<bool> _handleLocationPermission(BuildContext? context) async {
+  bool serviceEnabled;
+  LocationPermission permission;
+
+  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    if (context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('位置情報サービスが無効になっています。有効にしてください。')));
+    }
+    return false;
+  }
+
+  permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      if (context != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('位置情報の許可が必要です')));
+      }
+      return false;
+    }
+  }
+
+  if (permission == LocationPermission.deniedForever) {
+    if (context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('位置情報の許可が永続的に拒否されています。設定から許可してください。')));
+    }
+    return false;
+  }
+
+  return true;
+}
+
+// 位置情報の検証を行う共通関数
+Future<bool> validateLocation(double latitude, double longitude) async {
+  try {
+    if (!await _handleLocationPermission(null)) {
+      return false;
+    }
+
+    Position currentPosition = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    double distance = calculateDistance(
+      currentPosition.latitude,
+      currentPosition.longitude,
+      latitude,
+      longitude,
+    );
+
+    return distance <= 30;
+  } catch (e) {
+    print("Error validating location: $e");
+    return false;
+  }
 }
 
 // Supabaseからスタンプ情報を取得
