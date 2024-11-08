@@ -341,7 +341,11 @@ class DisplayMapState extends State<DisplayMap> {
         openCloseDial: isDialOpen,
         children: [
           SpeedDialChild(
-            child: const NFCButton(),
+            child: NFCButton(
+              onSnapComplete: () {
+                isDialOpen.value = false;
+              }
+            ),
           ),
           SpeedDialChild(
             child: QRButton(
