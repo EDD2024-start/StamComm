@@ -72,6 +72,23 @@ class StampSuccessScreen extends StatelessWidget {
                 Image.network(
                   userPhotoUrl,
                   fit: BoxFit.cover,
+                  loadingBuilder: (BuildContext context, Widget child,
+                      ImageChunkEvent? loadingProgress) {
+                    if (loadingProgress == null) {
+                      return child;
+                    }
+                    return SizedBox(
+                      height: 200, // 適切な高さを設定
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
                   errorBuilder: (context, error, stackTrace) {
                     return const Text('撮影した写真を読み込めませんでした。');
                   },
