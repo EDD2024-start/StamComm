@@ -1,3 +1,4 @@
+// navigate.dart
 import 'package:flutter/material.dart';
 import 'package:StamComm/view/home.dart';
 import 'package:StamComm/view/display_map.dart';
@@ -8,10 +9,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NavigateApp extends StatelessWidget {
   static const String _title = 'Flutter Code Sample';
-  final int initialPageIndex; // 追加
-  final String? eventId; // 追加
+  final int initialPageIndex;
+  final String? eventId;
 
-  const NavigateApp({super.key, this.initialPageIndex = 0, this.eventId}); // 変更
+  const NavigateApp({super.key, this.initialPageIndex = 0, this.eventId});
 
   static Route<void> route() {
     return MaterialPageRoute<void>(builder: (_) => const NavigateApp());
@@ -21,17 +22,16 @@ class NavigateApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: _title,
-      home:
-          Navigate(initialPageIndex: initialPageIndex, eventId: eventId), // 変更
+      home: Navigate(initialPageIndex: initialPageIndex, eventId: eventId),
     );
   }
 }
 
 class Navigate extends StatefulWidget {
-  final int initialPageIndex; // 追加
-  final String? eventId; // 追加
+  final int initialPageIndex;
+  final String? eventId;
 
-  const Navigate({super.key, this.initialPageIndex = 0, this.eventId}); // 変更
+  const Navigate({super.key, this.initialPageIndex = 0, this.eventId});
 
   @override
   _NavigateState createState() => _NavigateState();
@@ -44,34 +44,28 @@ class _NavigateState extends State<Navigate> {
   @override
   void initState() {
     super.initState();
-    pageIndex = widget.initialPageIndex; // 追加
-    selectedEventId = widget.eventId; // 追加
+    pageIndex = widget.initialPageIndex;
+    selectedEventId = widget.eventId;
   }
-
-  final List<Widget> pages = [
-    HomePage(),
-    DisplayMap(), // 変更
-    SearchPage(),
-    SettingPage()
-  ];
 
   @override
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      // ログインしていない場合はRegisterPageに遷移
       return const RegisterPage();
     }
+
+    final pages = [
+      HomePage(refreshCompletedEvents: pageIndex == 0), // 変更
+      DisplayMap(eventId: selectedEventId),
+      SearchPage(),
+      SettingPage(),
+    ];
 
     return Scaffold(
       body: IndexedStack(
         index: pageIndex,
-        children: pages.map((page) {
-          if (page is DisplayMap) {
-            return DisplayMap(eventId: selectedEventId); // 変更
-          }
-          return page;
-        }).toList(),
+        children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -81,7 +75,7 @@ class _NavigateState extends State<Navigate> {
           setState(() {
             pageIndex = index;
             if (index == 1) {
-              selectedEventId = null; // マップを選択した場合はeventIdをリセット
+              selectedEventId = null;
             }
           });
         },
