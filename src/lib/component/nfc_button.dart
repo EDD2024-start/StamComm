@@ -31,7 +31,7 @@ class _NFCButtonState extends State<NFCButton> {
 
     final bool isNfcAvailable = await NfcManager.instance.isAvailable();
     if (!isNfcAvailable) {
-      if (mounted) _showErrorDialog('NFCはこのデバイスで利用できません');
+      if (mounted) _showErrorDialog('このデバイスではNFCをご利用いただけません');
       return;
     }
 
@@ -167,7 +167,6 @@ class _NFCButtonState extends State<NFCButton> {
       context: context,
       barrierDismissible: false,  // 追加：ダイアログ外タップでの閉じを防止
       builder: (context) => AlertDialog(
-        title: const Text('エラー'),
         content: Text(message),
         actions: [
           TextButton(

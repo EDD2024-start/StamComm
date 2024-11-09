@@ -248,8 +248,8 @@ Future<void> handleSuccessfulScan(
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('エラー'),
-          content: const Text('スタンプの取得に失敗しました。'),
+          title: const Text('お知らせ'),
+          content: const Text('スタンプの取得ができませんでした。もう一度お試しください。'),
           actions: [
             TextButton(
               onPressed: () {

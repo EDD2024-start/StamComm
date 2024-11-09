@@ -48,7 +48,7 @@ class _QRButtonState extends State<QRButton> {
   // スキャンされたQRコードを処理
   Future<void> _processQRCode(String? code) async {
     if (code == null) {
-      await _showErrorDialog('QRコードの読み取りに失敗しました');
+      await _showErrorDialog('QRコードを読み取ることができませんでした');
       return;
     }
 
@@ -84,15 +84,15 @@ class _QRButtonState extends State<QRButton> {
           await _handleSuccessfulScan(event, id);
         } else {
           await controller?.pauseCamera();
-          await _showErrorDialog('現在位置とイベントの位置が遠すぎます');
+          await _showErrorDialog('スタンプの取得には、もう少し近づく必要があります');
         }
       } else {
-        await _showErrorDialog('対応するイベントが見つかりません');
+        await _showErrorDialog('このQRコードに対応するスタンプが見つかりませんでした');
       }
     } catch (e) {
       print('Error processing QR code: $e');
       await controller?.pauseCamera();
-      await _showErrorDialog('QRコードの処理中にエラーが発生しました: $e');
+      await _showErrorDialog('スタンプの取得ができませんでした。もう一度お試しください: $e');
     } finally {
       _isProcessing = false;
     }
@@ -110,7 +110,7 @@ class _QRButtonState extends State<QRButton> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('エラー'),
+        title: const Text('お知らせ'),
         content: Text(message),
         actions: <Widget>[
           TextButton(
