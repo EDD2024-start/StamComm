@@ -176,12 +176,8 @@ Future<void> handleSuccessfulScan(
       ),
     );
 
-    // 撮影した写真のファイル名を取得
     String fileName = photo.path.split('/').last;
-    print('写真が撮影されました: ${photo.path}');
-
     File file = File(photo.path);
-    bool uploadSuccess = false;
     String? publicUrl;
 
     try {
@@ -189,33 +185,31 @@ Future<void> handleSuccessfulScan(
         final filePath = "${supabase.auth.currentUser!.id}/$fileName";
         // ストレージにアップロード
         await supabase.storage.from('user_stamp_images').upload(filePath, file);
+        publicUrl = supabase.storage.from('user_stamp_images').getPublicUrl(filePath);
 
-        // パブリックURLを取得 - 修正部分
-        publicUrl =
-            supabase.storage.from('user_stamp_images').getPublicUrl(filePath);
-
-        // パブリックURLを保存
         if (publicUrl != null) {
           final error = await saveUserStamp(id, publicUrl);
-          uploadSuccess = error == null;
           
+          // ローディングダイアログを閉じる
+          if (context.mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+
           if (error == StampSaveError.duplicate) {
             if (context.mounted) {
               showDialog(
                 context: context,
-                barrierDismissible: false,
                 builder: (context) => AlertDialog(
                   title: const Text('取得済みのスタンプ'),
                   content: const Text('このスタンプは既に取得済みです。'),
                   actions: [
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context)
-                          ..pop() // ダイアログを閉じる
-                          ..pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => DisplayMap()),
-                            (route) => false,
-                          );
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => DisplayMap()),
+                          (route) => false,
+                        );
                       },
                       child: const Text('マップに戻る'),
                     ),
@@ -223,64 +217,46 @@ Future<void> handleSuccessfulScan(
                 ),
               );
             }
-            return;  // 重複エラーの場合はここで処理を終了
+            return;
+          } else if (error == null) {
+            // 成功時の処理
+            if (context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StampSuccessScreen(
+                    name: event['name'] ?? '名前がありません',
+                    id: id,
+                    descriptionImageUrl: event['description_image_url'] ?? '',
+                    descriptionText: event['description_text'] ?? '説明がありません',
+                    userPhotoUrl: publicUrl ?? '',
+                  ),
+                ),
+              );
+              onSnapComplete?.call();
+            }
+            return;
           }
         }
-      } else {
-        print("User is not logged in");
-        uploadSuccess = false;
       }
     } catch (e) {
-      print('Error uploading image: $e');
+      print('Error during stamp process: $e');
     }
 
-    // ローディングダイアログを閉じる
+    // エラー時の処理
     if (context.mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
-
-    if (uploadSuccess) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) {
-            if (event['name'] == null ||
-                event['description_image_url'] == null ||
-                event['description_text'] == null) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('エラー'),
-                ),
-                body: const Center(
-                  child: Text('イベント情報が不完全です。'),
-                ),
-              );
-            } else {
-              return StampSuccessScreen(
-                name: event['name'] ?? '名前がありません',
-                id: id,
-                descriptionImageUrl: event['description_image_url'] ?? '',
-                descriptionText: event['description_text'] ?? '説明がありません',
-                userPhotoUrl: publicUrl ?? '', // ユーザーが��影した写真のURLを渡す
-              );
-            }
-          },
-        ),
-      );
-    } else {
-      // エラーメッセージを表示してからマップ画面へ遷移
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('エラー'),
-          content: const Text('このスタンプは既に取得済みです。'),
+          content: const Text('スタンプの取得に失敗しました。'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
+                Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => DisplayMap()),
+                  (route) => false,
                 );
               },
               child: const Text('OK'),
@@ -289,9 +265,14 @@ Future<void> handleSuccessfulScan(
         ),
       );
     }
-
-    onSnapComplete?.call();
   } catch (e) {
     print("Error during scan handling: $e");
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => DisplayMap()),
+        (route) => false,
+      );
+    }
   }
 }
