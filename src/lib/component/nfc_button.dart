@@ -88,6 +88,14 @@ class _NFCButtonState extends State<NFCButton> {
             return;
           }
 
+          try {
+            await NfcManager.instance.stopSession();
+          } catch (e) {
+            print("セッションの停止に失敗しました: $e");
+          }
+
+          _isSessionActive = false;
+
           if (mounted) {
             await handleSuccessfulScan(context, event, id,
                 onSnapComplete: widget.onSnapComplete);
@@ -95,8 +103,9 @@ class _NFCButtonState extends State<NFCButton> {
         } catch (e) {
           if (mounted) _showErrorDialog('エラーが発生しました: $e');
         } finally {
-          _isSessionActive = false;
-          NfcManager.instance.stopSession();
+          // _isSessionActive = false;
+          // print("セッションを終了します");
+          // NfcManager.instance.stopSession();
           if (mounted) {
             setState(() => _isProcessing = false);
           }
