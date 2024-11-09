@@ -188,7 +188,7 @@ class DisplayMapState extends State<DisplayMap> {
           .map((item) => StampData.fromJson(item))
           .toList();
     } catch (e) {
-      print("エラーが発生しました: $e");
+      print("エラー��発生しました: $e");
       return [];
     }
   }
@@ -264,6 +264,15 @@ class DisplayMapState extends State<DisplayMap> {
       );
     } catch (e) {
       print("Error: $e");
+    }
+  }
+
+  void _handleStampSuccess() async {
+    // マーカーとユーザーデータを再読み込み
+    await _loadMarkers();
+    await _loadSavedEventIds();
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -388,15 +397,19 @@ class DisplayMapState extends State<DisplayMap> {
             children: [
               SpeedDialChild(
                 child: NFCButton(
-              onSnapComplete: () {
-                isDialOpen.value = false;
-              }
-            ),
+                  onSnapComplete: () {
+                    isDialOpen.value = false;
+                    _handleStampSuccess();
+                  }
+                ),
               ),
               SpeedDialChild(
-                child: QRButton(onSnapComplete: () {
-                  isDialOpen.value = false;
-                }),
+                child: QRButton(
+                  onSnapComplete: () {
+                    isDialOpen.value = false;
+                    _handleStampSuccess();
+                  }
+                ),
               ),
             ]));
   }
