@@ -25,7 +25,7 @@ class StampSuccessScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context, id); // idを返す
+            Navigator.pop(context, {'id': id, 'needsRestart': true});
           },
         ),
       ),
@@ -96,7 +96,7 @@ class StampSuccessScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context, id);
+                    Navigator.pop(context, {'id': id, 'needsRestart': true});
                   },
                   child: const Text('戻る'),
                 ),
