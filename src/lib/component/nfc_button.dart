@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:StamComm/utils/stamp_utils.dart';
+import 'package:StamComm/view/display_map.dart';  // 追加
 
 class NFCButton extends StatefulWidget {
   final VoidCallback? onSnapComplete;
@@ -58,7 +59,11 @@ class _NFCButtonState extends State<NFCButton> {
               onPressed: () async {
                 await NfcManager.instance.stopSession();
                 _isSessionActive = false;
-                Navigator.pop(context);
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => DisplayMap()),
+                  (route) => false,
+                );
                 setState(() => _isProcessing = false);
               },
               child: const Text('キャンセル'),
@@ -112,7 +117,7 @@ class _NFCButtonState extends State<NFCButton> {
                 onSnapComplete: widget.onSnapComplete);
           }
         } catch (e) {
-          if (mounted) _showErrorDialog('エラーが発生しました: $e');
+          if (mounted) _showErrorDialog('エラーが発生しました');
         } finally {
           if (mounted) {
             Navigator.pop(context); // スキャン中のダイアログを閉じる
