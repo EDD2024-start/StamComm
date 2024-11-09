@@ -43,9 +43,9 @@ class _NFCButtonState extends State<NFCButton> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          title: Text('NFCをスキャン'),
-          content: Column(
+        builder: (context) => AlertDialog(
+          title: const Text('NFCをスキャン'),
+          content: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(),
@@ -53,6 +53,17 @@ class _NFCButtonState extends State<NFCButton> {
               Text('NFCタグをスキャンしてください'),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await NfcManager.instance.stopSession();
+                _isSessionActive = false;
+                Navigator.pop(context);
+                setState(() => _isProcessing = false);
+              },
+              child: const Text('キャンセル'),
+            ),
+          ],
         ),
       );
     }
@@ -103,11 +114,15 @@ class _NFCButtonState extends State<NFCButton> {
         } catch (e) {
           if (mounted) _showErrorDialog('エラーが発生しました: $e');
         } finally {
-          // _isSessionActive = false;
-          // print("セッションを終了します");
-          // NfcManager.instance.stopSession();
           if (mounted) {
+            Navigator.pop(context); // スキャン中のダイアログを閉じる
             setState(() => _isProcessing = false);
+          }
+          _isSessionActive = false;
+          try {
+            await NfcManager.instance.stopSession();
+          } catch (e) {
+            print("セッションの停止に失敗しました: $e");
           }
         }
       },
